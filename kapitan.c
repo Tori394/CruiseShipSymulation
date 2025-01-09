@@ -9,7 +9,6 @@
 #include <stdio.h>
 
 #define NA_STATEK 3
-#define NA_STATEK_VIP 2
 #define ZE_STATKU 1
 
 
@@ -32,6 +31,8 @@ void handler(int sig) {
 }
 
 int main() {
+    int liczba_pasazerow=0;
+    pid_t pasazerowie[5]; //ZAŁOŻENIE DO TESTOW ZE POJEMNOSC STATKU TO 5
     struct pasazer pass;
 
     // Ustawienie obsługi sygnału
@@ -44,34 +45,33 @@ int main() {
     }
     printf("ID kolejki: %d\n", mostek);
 
-    while (dziala) {
-        printf("Kapitan czeka na pasazerow...\n");
-
-        // Odbieranie pasażera
+    while (liczba_pasazerow < 5 && dziala) {
         if (msgrcv(mostek, &pass, ROZMIAR_PASAZERA, NA_STATEK, 0) == -1) {
-            if (errno == EINTR) continue; // Przerwanie przez sygnał
+            if (errno == EINTR) continue; // Ignorowanie przerwań
             perror("Blad pobrania pasazera na statek");
             break;
         }
-
-        printf("Kapitan wpuscil na statek %d\n", pass.pas_pid);
+        pasazerowie[liczba_pasazerow++] = pass.pas_pid; // Zapis PID pasażera
+        printf("Kapitan wpuscil na statek pasażera %d\n", pass.pas_pid);
+    }
 
         // Symulacja rejsu
-        printf("Rejs sie rozpoczal\n");
-        sleep(10);
-        printf("Rejs sie zakonczyl\n");
+        printf("\nRejs z %d pasażerami się rozpoczął\n", liczba_pasazerow);
+        sleep(10); // Symulacja rejsu
+        printf("Rejs zakończony\n\n");
 
-        // Wypuszczenie pasażera ze statku
+        // Wypuszczenie pasażerow ze statku
+        for (int i = 0; i < liczba_pasazerow; i++) {
         pass.type = ZE_STATKU;
-        printf("Kapitan wypuscil ze statku %d\n", pass.pas_pid);
-
+        pass.pas_pid = pasazerowie[i];
         if (msgsnd(mostek, &pass, ROZMIAR_PASAZERA, 0) == -1) {
-            perror("Blad zejscia ze statku na mostek");
-            break;
+            perror("Blad wyslania pasażera ze statku");
+        } else {
+            printf("Kapitan wypuścił ze statku pasażera %d\n", pass.pas_pid);
         }
+    }  
 
         sleep(5); // Oczekiwanie przed kolejnym pasażerem
-    }
 
     // Usuwanie kolejki (jeśli nie usunięto w handlerze)
     if (msgctl(mostek, IPC_RMID, NULL) == -1) {
