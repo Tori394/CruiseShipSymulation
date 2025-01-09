@@ -39,23 +39,35 @@ int main() {
         exit(EXIT_FAILURE);
     }
 
-    pass.type = NA_STATEK;
-    pass.pas_pid = getpid();
+    //5 pasażerów
+    for(int i=0; i<5; i++) {
+        if(fork() == 0) {  // Proces dziecka (pasażer)
+            pass.type = NA_STATEK;
+            pass.pas_pid = getpid();
 
-    // Próba wejścia na statek
-    printf("Pasażer %d Czeka na wejście na statek...\n", pass.pas_pid);
-    if (msgsnd(mostek, &pass, ROZMIAR_PASAZERA, 0) == -1) {
-        perror("Pasażer %d: Nie udalo sie wejsc na statek\n", pass.pas_pid);
-        exit(EXIT_FAILURE);
-    }
-    printf("Pasażer %d: Wszedłem na statek\n", pass.pas_pid);
+            // Próba wejścia na statek
+            printf("Pasażer %d Czeka na wejście na statek...\n", pass.pas_pid);
+            if (msgsnd(mostek, &pass, ROZMIAR_PASAZERA, 0) == -1) {
+                perror("Nie udalo sie wejsc na statek\n");
+                exit(EXIT_FAILURE);
+            }
+            printf("Pasażer %d: Wszedłem na mostek\n", pass.pas_pid);
 
-    // Czekanie na zejście ze statku
-    if (msgrcv(mostek, &pass, ROZMIAR_PASAZERA, ZE_STATKU, 0) == -1) {
-        perror("Blad przy czekaniu na zejscie ze statku\n");
-        exit(EXIT_FAILURE);
+            // Czekanie na zejście ze statku
+            if (msgrcv(mostek, &pass, ROZMIAR_PASAZERA, ZE_STATKU, 0) == -1) {
+                perror("Blad przy czekaniu na zejscie ze statku\n");
+                exit(EXIT_FAILURE);
+            }
+            printf("Pasażer %d: Zszedłem ze statku\n", pass.pas_pid);
+
+            exit(0);  // Kończymy proces dziecka
+        }
     }
-    printf("Pasażer %d: Zszedłem ze statku\n", pass.pas_pid);
+
+    // Czekanie na zakończenie wszystkich procesów dzieci
+    for(int i=0; i<5; i++) {
+        wait(NULL);
+    }
 
     return 0;
 }
