@@ -67,12 +67,15 @@ void podnies_semafor(int nr) {
 
 int main() {
     struct pasazer pass;
+    int i=0;
 
     // Obsługa sygnałów
     signal(SIGINT, handler);
 
     // Połączenie z kolejką komunikatów
     while ((mostek = msgget(123, 0666)) == -1) {
+        i++;
+        if(i==12) exit(1); //jesli program kapitana nie zostanie włączony w przeciagu minuty, zamknij program
         sleep(5);
     }
 

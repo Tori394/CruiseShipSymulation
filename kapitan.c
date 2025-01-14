@@ -8,6 +8,9 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <sys/sem.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <fcntl.h>
 
 #define NA_STATEK 3
 #define ZE_STATKU 1
@@ -16,8 +19,10 @@
 #define SZLABAN 1
 
 int plyn=1;
+int startuj=0;
 int mostek;  //kolejka komunikatow
 int szlabany; //semafor
+pthread_t czas;
 
 // Struktura pasażera
 struct pasazer {
@@ -36,9 +41,9 @@ void panic_button(int sig) {
         printf("Blad usuwania semafora\n");
         exit(EXIT_FAILURE);
     }
+    plyn=0;
     exit(1);
 }
-
 
 // Czyszczenie na koncu programu
 void zakoncz(){
@@ -89,111 +94,145 @@ void podnies_semafor(int nr) {
     }
 }
 
+void odbierz_sygnal_start(int sig) {
+    if (sig == SIGUSR1) {
+        printf("Kapitan otrzymał sygnał do startu, zamykamy wejście!\n");
+        ustaw_wartosc_semafora(0, SZLABAN);
+        startuj = 1;
+    }
+}
+
+
+void przekaz_pid(pid_t pid) {
+    int fd;
+
+    if (mkfifo("./fifo", 0666) == -1) {
+        if (errno != EEXIST) {
+        perror("mkfifo");
+        exit(1);
+        }
+    }
+    sleep(5);
+    fd = open("./fifo", O_WRONLY);
+    if (fd == -1) {
+        perror("open");
+        exit(1);
+    }
+    if (write(fd, &pid, sizeof(pid_t)) == -1) {
+        perror("write");
+        exit(1);
+    }
+
+    close(fd);
+}
 
 int main() {
     int liczba_pasazerow=0;
-    int pojemnosc_mostka=1;
-    int pojemnosc_statku=7;
+    int pojemnosc_mostka=4;
+    int pojemnosc_statku=9;
     int ilosc_rejsow_dzis=4;
     int czas_rejsu=10;
+    int czas_miedzy_rejsami=30;
     pid_t pasazerowie[pojemnosc_statku]; //ZAŁOŻENIE DO TESTOW ZE POJEMNOSC STATKU TO 7
     struct pasazer pass;
     struct msqid_ds buf;
+    pid_t moj_pid;
 
-    // Ustawienie obsługi sygnału PANIC BUTTON
-    signal(SIGINT, panic_button);
-    sigset_t mask;
-    int signal;
-    sigemptyset(&mask);
-    sigaddset(&mask, SIGTSTP);
-    sigprocmask(SIG_BLOCK, &mask, NULL);
+    moj_pid=getpid();
+    printf("%d, %d", moj_pid, getpid());
+ 
+    przekaz_pid(moj_pid);
 
-    // Tworzenie kolejki komunikatów
-    if ((mostek = msgget(123, IPC_CREAT | 0666)) == -1) {
-        perror("Blad tworzenia kolejki\n");
-        exit(EXIT_FAILURE);
-    }
-    // Tworzenie semafora
-    utworz_semafor(100,2);
-    ustaw_wartosc_semafora(pojemnosc_mostka, MIEJSCE_NA_MOSTKU); //semafor 0 - kontrola wielkosci mostka
+        // Ustawienie obsługi sygnału PANIC BUTTON
+        signal(SIGINT, panic_button);
+        signal(SIGUSR1, odbierz_sygnal_start);
 
-    while(ilosc_rejsow_dzis && plyn)
-    {
-        ustaw_wartosc_semafora(pojemnosc_statku, SZLABAN); //semafor 1 - kontrola ilosc ludzi wchodzacych na statek
-        printf("Szlaban sie otwiera...\n");
-        sleep(2);
-
-        while (liczba_pasazerow < pojemnosc_statku) {
-            if (msgrcv(mostek, &pass, ROZMIAR_PASAZERA, NA_STATEK, 0) == -1) {
-                if (errno == EINTR) continue; // Ignorowanie przerwań
-                perror("Blad pobrania pasazera na statek");
-                break;
-            }
-            pasazerowie[liczba_pasazerow++] = pass.pas_pid; // Zapisz PID pasażera
-            printf("Kapitan wpuscil na statek pasażera %d\n", pass.pas_pid);
-            podnies_semafor(MIEJSCE_NA_MOSTKU);
-
+        // Tworzenie kolejki komunikatów
+        if ((mostek = msgget(123, IPC_CREAT | 0666)) == -1) {
+            perror("Blad tworzenia kolejki\n");
+            exit(EXIT_FAILURE);
         }
+        // Tworzenie semafora
+        utworz_semafor(100,2);
+        ustaw_wartosc_semafora(pojemnosc_mostka, MIEJSCE_NA_MOSTKU); //semafor 0 - kontrola wielkosci mostka
 
-            printf("Statek pełny, za niedługo wypłynie\n");
-           
-            if (sigwait(&mask, &signal) == 0 && signal == SIGTSTP) {
-                printf("\n\nWydano sygnal do startu\n\n");
-                sleep(2);
-                if(liczba_pasazerow==0){
-                    printf("Statek nie odplynie bez pasażerów\n");
-                    continue;
+        while(ilosc_rejsow_dzis && plyn)
+        {
+        
+            ustaw_wartosc_semafora(pojemnosc_statku, SZLABAN); //semafor 1 - kontrola ilosc ludzi wchodzacych na statek
+            printf("Szlaban sie otwiera...\n");
+            sleep(2);
+
+            while (liczba_pasazerow < pojemnosc_statku) {
+                if (msgrcv(mostek, &pass, ROZMIAR_PASAZERA, NA_STATEK, 0) == -1) {
+                    if (errno == EINTR) continue; // Ignorowanie przerwań
+                    perror("Blad pobrania pasazera na statek");
+                    break;
+                }
+                pasazerowie[liczba_pasazerow++] = pass.pas_pid; // Zapisz PID pasażera
+                podnies_semafor(MIEJSCE_NA_MOSTKU);
+                printf("Kapitan wpuscil na statek pasażera %d\n", pass.pas_pid);
+            }
+
+                printf("Na statek weszło %d pasażerów, za niedługo wypłynie\n", liczba_pasazerow);
+            
+                while(!startuj && plyn) {sleep(1);}
+                        
+                //jesli sygnal nie byl sygnalem do przerwania rejsow
+                if(plyn){
+                    // Symulacja rejsu
+                    if (startuj) {
+                        printf("\n\nWydano sygnal do startu\n\n");
+                        sleep(2);
+                        if(liczba_pasazerow==0){
+                            printf("Statek nie odplynie bez pasażerów\n");
+                            continue;
+                        }
+                        else{
+                            printf("\nRejs z %d pasażerami się rozpoczął\n", liczba_pasazerow);
+                            sleep(czas_rejsu); // Symulacja rejsu
+                            printf("Rejs zakończony\n\n");
+                            ilosc_rejsow_dzis--;
+                        }
+                    }
                 }
                 else{
-                    printf("\nRejs z %d pasażerami się rozpoczął\n", liczba_pasazerow);
-                    sleep(czas_rejsu); // Symulacja rejsu
-                    printf("Rejs zakończony\n\n");
+                    printf("Rejs się jednak nie odbędzie\n");
                 }
-            }
-            
-            //jesli sygnal nie byl sygnalem do przerwania rejsow
-            if(plyn){
-                // Symulacja rejsu
-                
-            }
-            else{
-                printf("Rejs się jednak nie odbędzie\n");
-            }
 
-            // Wypuszczenie pasażerow ze statku
-            for (int i = 0; i < liczba_pasazerow; i++) {
-              pass.type = ZE_STATKU;
-                pass.pas_pid = pasazerowie[i];
-                if (msgsnd(mostek, &pass, ROZMIAR_PASAZERA, 0) == -1) {
-                    perror("Blad wyslania pasażera ze statku");
-                } else {
-                    opusc_semafor(MIEJSCE_NA_MOSTKU);
-                    //printf("Kapitan wypuścił ze statku pasażera %d\n", pass.pas_pid);
+                // Wypuszczenie pasażerow ze statku
+                for (int i = 0; i < liczba_pasazerow; i++) {
+                pass.type = ZE_STATKU;
+                    pass.pas_pid = pasazerowie[i];
+                    if (msgsnd(mostek, &pass, ROZMIAR_PASAZERA, 0) == -1) {
+                        perror("Blad wyslania pasażera ze statku");
+                    } else {
+                        opusc_semafor(MIEJSCE_NA_MOSTKU);
+                        //printf("Kapitan wypuścił ze statku pasażera %d\n", pass.pas_pid);
+                    }
+                }  
+
+                liczba_pasazerow=0;
+
+                while (buf.msg_qnum != 0) {
+                if (msgctl(mostek, IPC_STAT, &buf) == -1) {
+                    perror("Blad pobrania informacji o kolejce\n");
+                    exit(EXIT_FAILURE);
                 }
-            }  
+                sleep(1); // Odczekanie przed ponownym sprawdzeniem
+                }   
+                startuj=0;         
+        }
 
-            liczba_pasazerow=0;
-
-            while (buf.msg_qnum != 0) {
-            if (msgctl(mostek, IPC_STAT, &buf) == -1) {
-                perror("Blad pobrania informacji o kolejce\n");
-                exit(EXIT_FAILURE);
-            }
-            sleep(1); // Odczekanie przed ponownym sprawdzeniem
-            }
-
-            ilosc_rejsow_dzis--;            
-    }
-
-    switch(ilosc_rejsow_dzis){
-        case 0: 
-            printf("Wykonano wszystkie zaplanowane rejsy na dziś\n");
-            break;
-        default:
-            printf("Rejsy zostały wstrzymane\n");
-            break;
-    }
-
+        switch(ilosc_rejsow_dzis){
+            case 0: 
+                printf("Wykonano wszystkie zaplanowane rejsy na dziś\n");
+                break;
+            default:
+                printf("Rejsy zostały wstrzymane\n");
+                break;
+        }
+    wait(NULL);
     zakoncz();
     return 0;
 }
