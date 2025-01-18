@@ -76,6 +76,15 @@ void ustaw_wartosc_semafora(int wartosc, int nr) {
     }
 }
 
+int sprawdz_wartosc_semafora(int nr) {
+    int val = semctl(szlabany, nr, GETVAL);
+    if (val == -1) {
+        perror("Blad odczytu wartosci semafora");
+        exit(EXIT_FAILURE);
+    }
+    return val;
+}
+
 // Funkcja opuszczania semafora -1
 void opusc_semafor(int nr) {
     struct sembuf op = {nr, -1, 0};
@@ -113,7 +122,7 @@ void przekaz_pid(pid_t pid) {
         }
     }
     sleep(5);
-    fd = open("./fifo", O_WRONLY);
+    fd = open("./fifo", O_WRONLY  | O_NONBLOCK);
     if (fd == -1) {
         perror("open");
         exit(1);
@@ -136,14 +145,11 @@ int main() {
     pid_t pasazerowie[pojemnosc_statku]; //ZAŁOŻENIE DO TESTOW ZE POJEMNOSC STATKU TO 7
     struct pasazer pass;
     struct msqid_ds buf;
-    pid_t moj_pid;
-
-    moj_pid=getpid();
-    printf("%d, %d", moj_pid, getpid());
+    int val=pojemnosc_statku;
+    int val2=0;
  
-    przekaz_pid(moj_pid);
+    przekaz_pid(getpid());
 
-        // Ustawienie obsługi sygnału PANIC BUTTON
         signal(SIGINT, panic_button);
         signal(SIGUSR1, odbierz_sygnal_start);
 
@@ -160,10 +166,13 @@ int main() {
         {
         
             ustaw_wartosc_semafora(pojemnosc_statku, SZLABAN); //semafor 1 - kontrola ilosc ludzi wchodzacych na statek
+            val = pojemnosc_statku;
+            val2 = pojemnosc_mostka;
+            printf("val: %d\n",val);
             printf("Szlaban sie otwiera...\n");
             sleep(2);
 
-            while (liczba_pasazerow < pojemnosc_statku) {
+            while ( val2 < pojemnosc_mostka || val > 0 ) {
                 if (msgrcv(mostek, &pass, ROZMIAR_PASAZERA, NA_STATEK, 0) == -1) {
                     if (errno == EINTR) continue; // Ignorowanie przerwań
                     perror("Blad pobrania pasazera na statek");
@@ -172,6 +181,10 @@ int main() {
                 pasazerowie[liczba_pasazerow++] = pass.pas_pid; // Zapisz PID pasażera
                 podnies_semafor(MIEJSCE_NA_MOSTKU);
                 printf("Kapitan wpuscil na statek pasażera %d\n", pass.pas_pid);
+                //if (startuj) break;
+                val = sprawdz_wartosc_semafora(SZLABAN);
+                val2 = sprawdz_wartosc_semafora(MIEJSCE_NA_MOSTKU);
+                printf("val: %d, %d\n",val, val2);
             }
 
                 printf("Na statek weszło %d pasażerów, za niedługo wypłynie\n", liczba_pasazerow);
@@ -182,7 +195,6 @@ int main() {
                 if(plyn){
                     // Symulacja rejsu
                     if (startuj) {
-                        printf("\n\nWydano sygnal do startu\n\n");
                         sleep(2);
                         if(liczba_pasazerow==0){
                             printf("Statek nie odplynie bez pasażerów\n");

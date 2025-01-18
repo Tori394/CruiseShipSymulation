@@ -82,13 +82,13 @@ int main() {
     utworz_semafor(100,2);
 
     //5 pasażerów
-    for(int i=0; i<21; i++) {
+    for(int i=0; i<50; i++) {
         if(fork() == 0) {  // Proces dziecka (pasażer)
             pass.type = NA_STATEK;
             pass.pas_pid = getpid();
 
             // Próba wejścia na statek
-            printf("Do kolejki w rejs ustawił się pasażer %d!\n", pass.pas_pid);
+            //printf("Do kolejki w rejs ustawił się pasażer %d!\n", pass.pas_pid);
             opusc_semafor(SZLABAN);
             opusc_semafor(MIEJSCE_NA_MOSTKU);
             if (msgsnd(mostek, &pass, ROZMIAR_PASAZERA, 0) == -1) {
@@ -103,6 +103,7 @@ int main() {
                 perror("Blad przy czekaniu na zejscie ze statku\n");
                 exit(EXIT_FAILURE);
             }
+            sleep(1);
             printf("Pasażer %d zszedłem na ląd\n", pass.pas_pid);
             podnies_semafor(MIEJSCE_NA_MOSTKU);
 
@@ -111,7 +112,7 @@ int main() {
     }
 
     // Czekanie na zakończenie wszystkich procesów dzieci
-    for(int i=0; i<21; i++) {
+    for(int i=0; i<50; i++) {
         wait(NULL);
     }
 
