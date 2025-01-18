@@ -7,6 +7,7 @@
 #include <signal.h>
 #include <errno.h>
 #include <sys/sem.h>
+#include <time.h>
 
 #define NA_STATEK 3
 #define ZE_STATKU 1
@@ -16,6 +17,7 @@
 
 int mostek;  //kolejka komunikatow
 int szlabany; //semafor
+int dzialaj=1;
 
 // Struktura pasażera
 struct pasazer {
@@ -25,7 +27,7 @@ struct pasazer {
 
 // Obsługa sygnału SIGINT
 void handler(int sig) {
-    printf("Sygnal SIGINT! Koniec działania\n");
+    dzialaj=0;
     exit(EXIT_SUCCESS);
 }
 
@@ -50,8 +52,11 @@ void ustaw_wartosc_semafora(int wartosc, int nr) {
 void opusc_semafor(int nr) {
     struct sembuf op = {nr, -1, 0};
     if (semop(szlabany, &op, 1) == -1) {
-        perror("Blad opuszczania semafora");
-        exit(EXIT_FAILURE);
+        printf("Nie udało się dostać na rejs, pasażer odszedł \n");
+        dzialaj=0;
+        exit(0);
+        //perror("Blad opuszczania semafora");
+        //exit(EXIT_FAILURE);
     }
 }
 
@@ -59,8 +64,11 @@ void opusc_semafor(int nr) {
 void podnies_semafor(int nr) {
     struct sembuf op = {nr, 1, 0};
     if (semop(szlabany, &op, 1) == -1) {
-        perror("Blad podnoszenia semafora");
-        exit(EXIT_FAILURE);
+        printf("Nie udało się wypłynąć, pasażer odszedł \n");
+        dzialaj=0;
+        exit(0);
+        //perror("Blad podnoszenia semafora");
+        //exit(EXIT_FAILURE);
     }
 }
 
@@ -68,9 +76,12 @@ void podnies_semafor(int nr) {
 int main() {
     struct pasazer pass;
     int i=0;
+    int ilosc_pasazerow=0;
+    int czas_miedzy_pasazerami;
 
     // Obsługa sygnałów
     signal(SIGINT, handler);
+     srand(time(NULL));
 
     // Połączenie z kolejką komunikatów
     while ((mostek = msgget(123, 0666)) == -1) {
@@ -81,14 +92,16 @@ int main() {
 
     utworz_semafor(100,2);
 
-    //5 pasażerów
-    for(int i=0; i<50; i++) {
+    while(dzialaj) {
+        czas_miedzy_pasazerami = rand() % 10; 
+        sleep(czas_miedzy_pasazerami);
         if(fork() == 0) {  // Proces dziecka (pasażer)
             pass.type = NA_STATEK;
             pass.pas_pid = getpid();
+            ilosc_pasazerow++;
 
             // Próba wejścia na statek
-            //printf("Do kolejki w rejs ustawił się pasażer %d!\n", pass.pas_pid);
+            printf("Do kolejki w rejs ustawił się pasażer %d!\n", pass.pas_pid);
             opusc_semafor(SZLABAN);
             opusc_semafor(MIEJSCE_NA_MOSTKU);
             if (msgsnd(mostek, &pass, ROZMIAR_PASAZERA, 0) == -1) {
@@ -112,7 +125,7 @@ int main() {
     }
 
     // Czekanie na zakończenie wszystkich procesów dzieci
-    for(int i=0; i<50; i++) {
+    for(int i=0; i<ilosc_pasazerow; i++) {
         wait(NULL);
     }
 

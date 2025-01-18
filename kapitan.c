@@ -22,7 +22,6 @@ int plyn=1;
 int startuj=0;
 int mostek;  //kolejka komunikatow
 int szlabany; //semafor
-pthread_t czas;
 
 // Struktura pasażera
 struct pasazer {
@@ -31,23 +30,12 @@ struct pasazer {
 };
 
 // Obsługa sygnału SIGINT PANIC BUTTON
-void panic_button(int sig) {
-    printf("Sygnal SIGINT! Zakonczenie dzialania\n");
-    if (msgctl(mostek, IPC_RMID, NULL) == -1) {
-        perror("Blad usuniecia kolejki\n");
-    }
-    if ((semctl(szlabany,0,IPC_RMID))==-1)
-    {
-        printf("Blad usuwania semafora\n");
-        exit(EXIT_FAILURE);
-    }
+void odbierz_sygnal_stop(int sig) {
     plyn=0;
-    exit(1);
 }
 
 // Czyszczenie na koncu programu
 void zakoncz(){
-    printf("Zakonczenie symulacji\n");
     if (msgctl(mostek, IPC_RMID, NULL) == -1) {
         perror("Blad usuniecia kolejki\n");
     }
@@ -138,10 +126,9 @@ void przekaz_pid(pid_t pid) {
 int main() {
     int liczba_pasazerow=0;
     int pojemnosc_mostka=4;
-    int pojemnosc_statku=9;
-    int ilosc_rejsow_dzis=4;
-    int czas_rejsu=10;
-    int czas_miedzy_rejsami=30;
+    int pojemnosc_statku=10;
+    int ilosc_rejsow_dzis=10;
+    int czas_rejsu=15;
     pid_t pasazerowie[pojemnosc_statku]; //ZAŁOŻENIE DO TESTOW ZE POJEMNOSC STATKU TO 7
     struct pasazer pass;
     struct msqid_ds buf;
@@ -150,7 +137,7 @@ int main() {
  
     przekaz_pid(getpid());
 
-        signal(SIGINT, panic_button);
+        signal(SIGINT, odbierz_sygnal_stop);
         signal(SIGUSR1, odbierz_sygnal_start);
 
         // Tworzenie kolejki komunikatów
