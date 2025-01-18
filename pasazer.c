@@ -53,7 +53,10 @@ void opusc_semafor(int nr) {
     struct sembuf op = {nr, -1, 0};
     if (semop(szlabany, &op, 1) == -1) {
         printf("Nie udało się dostać na rejs, pasażer odszedł \n");
-        dzialaj=0;
+        if (kill(getppid(), SIGINT) == -1) {
+                perror("Błąd wysyłania sygnału zakończenia");
+                exit(EXIT_FAILURE);
+            }
         exit(0);
         //perror("Blad opuszczania semafora");
         //exit(EXIT_FAILURE);
@@ -65,7 +68,11 @@ void podnies_semafor(int nr) {
     struct sembuf op = {nr, 1, 0};
     if (semop(szlabany, &op, 1) == -1) {
         printf("Nie udało się wypłynąć, pasażer odszedł \n");
-        dzialaj=0;
+        if (kill(getppid(), SIGINT) == -1) {
+                perror("Błąd wysyłania sygnału zakończenia");
+                exit(EXIT_FAILURE);
+            }
+        exit(0);
         exit(0);
         //perror("Blad podnoszenia semafora");
         //exit(EXIT_FAILURE);
