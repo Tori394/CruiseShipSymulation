@@ -13,8 +13,8 @@ int czas = 60; // Czas rejsu
 int plyn = 1;  // Flaga działania programu
 int szlabany;
 
-void zakoncz_program(int sig) {
-    printf("\nOtrzymano sygnał zakończenia (SIGINT). Kończenie programu...\n");
+void panic_button(int sig) {
+    printf("Program przerwany sygnałem nadanym przez uzytkownika\n");
     plyn = 0;
 }
 
@@ -62,6 +62,7 @@ void* wyslij_sygnal_start(void* arg) {
                 perror("Błąd wysyłania sygnału startu");
                 exit(EXIT_FAILURE);
             }
+            printf("Kapitan Portu zezwolił na wcześnejsze wypłynięcie\n");
         }
         else {
             sleep(czas/2);
@@ -69,8 +70,8 @@ void* wyslij_sygnal_start(void* arg) {
                 perror("Błąd wysyłania sygnału startu");
                 exit(EXIT_FAILURE);
             }
+            printf("Kapitan Portu nadał sygnał do startu\n");
         }
-        printf("Wysłano sygnał startu do kapitana (PID: %d)\n", pid_kapitana);
     }
     return NULL;
 }
@@ -83,12 +84,11 @@ void* wyslij_sygnal_stop(void* arg) {
         sleep(czas_oczekiwania);
 
         if (rand() % 20 == 1) { // Szansa na wykrycie burzy (5%)
-            printf("Nadchodzi burza! Kapitan portu nakazał zakończenie rejsów!\n");
+            printf("Kapitan portu nakazał zakończenie rejsów!\n");
             if (kill(pid_kapitana, SIGINT) == -1) {
-                perror("Błąd wysyłania sygnału zakończenia (SIGINT)");
+                perror("Błąd wysyłania sygnału zakończenia");
                 exit(EXIT_FAILURE);
             }
-            printf("Wysłano sygnał zakończenia (SIGINT) do kapitana (PID: %d)\n", pid_kapitana);
             plyn = 0; // Przerwanie działania programu
         }
     }
@@ -106,7 +106,7 @@ int main() {
 
     // Pobranie PID kapitana
     pobierz_dane();
-    printf("Odczytano PID kapitana: %d\n", pid_kapitana);
+    printf("Kaitan portu odczytał PID kapitana: %d\nRozpoczynanie symulacji\n\n", pid_kapitana);
     utworz_semafor(100,2);
 
     // Tworzenie wątku wysyłającego sygnał startu
@@ -125,6 +125,5 @@ int main() {
     pthread_join(sygnal_start, NULL);
     pthread_join(sygnal_stop, NULL);
 
-    printf("Program zakończony poprawnie.\n");
     return 0;
 }

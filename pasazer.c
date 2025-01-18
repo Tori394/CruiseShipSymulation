@@ -52,14 +52,8 @@ void ustaw_wartosc_semafora(int wartosc, int nr) {
 void opusc_semafor(int nr) {
     struct sembuf op = {nr, -1, 0};
     if (semop(szlabany, &op, 1) == -1) {
-        printf("Nie udało się dostać na rejs, pasażer odszedł \n");
-        if (kill(getppid(), SIGINT) == -1) {
-                perror("Błąd wysyłania sygnału zakończenia");
-                exit(EXIT_FAILURE);
-            }
+        //printf("Nie udało się dostać na rejs, pasażer odszedł \n");
         exit(0);
-        //perror("Blad opuszczania semafora");
-        //exit(EXIT_FAILURE);
     }
 }
 
@@ -67,18 +61,15 @@ void opusc_semafor(int nr) {
 void podnies_semafor(int nr) {
     struct sembuf op = {nr, 1, 0};
     if (semop(szlabany, &op, 1) == -1) {
-        printf("Nie udało się wypłynąć, pasażer odszedł \n");
-        if (kill(getppid(), SIGINT) == -1) {
-                perror("Błąd wysyłania sygnału zakończenia");
-                exit(EXIT_FAILURE);
-            }
+        //printf("Nie udało się wypłynąć, pasażer odszedł \n");
         exit(0);
-        exit(0);
-        //perror("Blad podnoszenia semafora");
-        //exit(EXIT_FAILURE);
     }
 }
 
+void usun_podproces_dynamicznie(int sig) {
+    // Automatyczne odbieranie statusu zakończenia wszystkich dzieci
+    while (waitpid(-1, NULL, WNOHANG) > 0);
+}
 
 int main() {
     struct pasazer pass;
@@ -88,7 +79,9 @@ int main() {
 
     // Obsługa sygnałów
     signal(SIGINT, handler);
-     srand(time(NULL));
+    signal(SIGCHLD, usun_podproces_dynamicznie);
+
+    srand(time(NULL));
 
     // Połączenie z kolejką komunikatów
     while ((mostek = msgget(123, 0666)) == -1) {
@@ -124,17 +117,13 @@ int main() {
                 exit(EXIT_FAILURE);
             }
             sleep(1);
-            printf("Pasażer %d zszedłem na ląd\n", pass.pas_pid);
+            printf("Pasażer %d zszedł na ląd\n", pass.pas_pid);
             podnies_semafor(MIEJSCE_NA_MOSTKU);
 
             exit(0);  // Kończymy proces dziecka
         }
     }
-
-    // Czekanie na zakończenie wszystkich procesów dzieci
-    for(int i=0; i<ilosc_pasazerow; i++) {
-        wait(NULL);
-    }
+    printf("Port jest pusty, wszyscy się rozeszli\n");
 
     return 0;
 }

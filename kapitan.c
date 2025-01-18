@@ -155,9 +155,7 @@ int main() {
             ustaw_wartosc_semafora(pojemnosc_statku, SZLABAN); //semafor 1 - kontrola ilosc ludzi wchodzacych na statek
             val = pojemnosc_statku;
             val2 = pojemnosc_mostka;
-            printf("val: %d\n",val);
             printf("Szlaban sie otwiera...\n");
-            sleep(2);
 
             while ( val2 < pojemnosc_mostka || val > 0 ) {
                 if (msgrcv(mostek, &pass, ROZMIAR_PASAZERA, NA_STATEK, 0) == -1) {
@@ -182,7 +180,6 @@ int main() {
                 if(plyn){
                     // Symulacja rejsu
                     if (startuj) {
-                        sleep(2);
                         if(liczba_pasazerow==0){
                             printf("Statek nie odplynie bez pasażerów\n");
                             continue;
@@ -190,7 +187,7 @@ int main() {
                         else{
                             printf("\nRejs z %d pasażerami się rozpoczął\n", liczba_pasazerow);
                             sleep(czas_rejsu); // Symulacja rejsu
-                            printf("Rejs zakończony\n\n");
+                            printf("Rejs zakończony\nNa dzisiaj zaplanowano jeszcze %d rejsów\n", ilosc_rejsow_dzis);
                             ilosc_rejsow_dzis--;
                         }
                     }
@@ -231,6 +228,7 @@ int main() {
                 printf("Rejsy zostały wstrzymane\n");
                 break;
         }
+        printf("Pozostali chętni się rozchodzą...\n");
     wait(NULL);
     zakoncz();
     return 0;
