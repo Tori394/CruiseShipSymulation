@@ -135,26 +135,28 @@ void przekaz_pid(pid_t pid) {
 
 int main() {
     int liczba_pasazerow=0;
-    int pojemnosc_mostka=4;
-    int pojemnosc_statku=10;
-    int ilosc_rejsow_dzis=5;
-    int czas_rejsu=15;
+    int pojemnosc_mostka=10;
+    int pojemnosc_statku=20;
+    int ilosc_rejsow_dzis=20;
+    int czas_rejsu=30;
     pid_t pasazerowie[pojemnosc_statku]; //ZAŁOŻENIE DO TESTOW ZE POJEMNOSC STATKU TO 7
     struct pasazer pass;
     struct msqid_ds buf;
     int val=pojemnosc_statku;
     int val2=0;
  
+    // Tworzenie kolejki komunikatów
+    if ((mostek = msgget(123, IPC_CREAT | 0666)) == -1) {
+        perror("Blad tworzenia kolejki\n");
+        exit(EXIT_FAILURE);
+    }
     przekaz_pid(getpid());
 
         signal(SIGINT, odbierz_sygnal_stop);
         signal(SIGUSR1, odbierz_sygnal_start);
 
-        // Tworzenie kolejki komunikatów
-        if ((mostek = msgget(123, IPC_CREAT | 0666)) == -1) {
-            perror("Blad tworzenia kolejki\n");
-            exit(EXIT_FAILURE);
-        }
+
+
         // Tworzenie semafora
         utworz_semafor(100,2);
         ustaw_wartosc_semafora(pojemnosc_mostka, MIEJSCE_NA_MOSTKU); //semafor 0 - kontrola wielkosci mostka
@@ -198,8 +200,7 @@ int main() {
                         else{
                             printf("Rejs z %d pasażerami się rozpoczął\n", liczba_pasazerow);
                             sleep(czas_rejsu); // Symulacja rejsu
-                            printf("Rejs zakończony\nNa dzisiaj zaplanowano jeszcze %d rejsów\n", ilosc_rejsow_dzis);
-                            ilosc_rejsow_dzis--;
+                            printf("Rejs zakończony\nNa dzisiaj zaplanowano jeszcze %d rejsów\n", --ilosc_rejsow_dzis);
                         }
                     }
                 }

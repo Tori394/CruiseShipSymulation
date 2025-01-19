@@ -9,13 +9,12 @@
 #include <sys/sem.h>
 
 pid_t pid_kapitana; 
-int czas = 60; // Czas rejsu
+int czas = 120; // Czas rejsu
 int plyn = 1;  // Flaga działania programu
 int szlabany;
 
 void panic_button(int sig) {
-    printf("Program przerwany sygnałem nadanym przez uzytkownika\n");
-    plyn = 0;
+    exit(0);
 }
 
 // Funkcja pobierająca PID kapitana z FIFO
@@ -52,16 +51,16 @@ int sprawdz_wartosc_semafora(int nr) {
 
 // Funkcja wątku, który wysyła sygnały startu co określony czas
 void* wyslij_sygnal_start(void* arg) {
-    while (sprawdz_wartosc_semafora(1)!=-1 && plyn) {
+    while (plyn && sprawdz_wartosc_semafora(0)!=-1) {
         sleep(czas/2); // Czekaj czas trwania rejsu
-        if (sprawdz_wartosc_semafora(1)==0 && sprawdz_wartosc_semafora(0)!=0 && rand() % 2 == 1) { // Jesli statek zapelni sie przed czasem jest 50% szans, że kapitan wysle sygnał do wcześniejszego startu
+        if (sprawdz_wartosc_semafora(1)==0 && sprawdz_wartosc_semafora(0)!=0 && rand() % 2 == 1 && plyn) { // Jesli statek zapelni sie przed czasem jest 50% szans, że kapitan wysle sygnał do wcześniejszego startu
             if (kill(pid_kapitana, SIGUSR1) == -1) {
                 perror("Błąd wysyłania sygnału startu");
                 exit(EXIT_FAILURE);
             }
             printf("Kapitan Portu zezwolił na wcześnejsze wypłynięcie\n");
         }
-        else {
+        else if (plyn){
             sleep(czas/2);
             if (kill(pid_kapitana, SIGUSR1) == -1) {
                 perror("Błąd wysyłania sygnału startu");
@@ -70,13 +69,14 @@ void* wyslij_sygnal_start(void* arg) {
             printf("Kapitan Portu nadał sygnał do startu\n");
         }
     }
+    kill(getpid(), SIGINT);
     return NULL;
 }
 
 // Funkcja wątku, który wypatruje burzy i wysyła sygnał zakończenia
 void* wyslij_sygnal_stop(void* arg) {
     int czas_oczekiwania;
-    while (plyn) {
+    while (plyn && sprawdz_wartosc_semafora(0)!=-1) {
         czas_oczekiwania = rand() % (czas * 2) + (czas / 2); // Losowanie czasu między czas/2 a czas*2 sekund
         sleep(czas_oczekiwania);
 
@@ -89,6 +89,7 @@ void* wyslij_sygnal_stop(void* arg) {
             plyn = 0; // Przerwanie działania programu
         }
     }
+    kill(getpid(), SIGINT);
     return NULL;
 }
 
