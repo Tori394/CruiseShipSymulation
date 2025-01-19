@@ -6,7 +6,7 @@ int szlabany; //semafor
 
 
 // Obsługa sygnału SIGINT
-void handler(int sig) {
+void koniec_pracy(int sig) {
     exit(EXIT_SUCCESS);
 }
 
@@ -41,24 +41,18 @@ int main() {
     int czas_miedzy_pasazerami;
 
     // Obsługa sygnałów
-    signal(SIGINT, handler);
+    signal(SIGINT, koniec_pracy);
     signal(SIGCHLD, usun_podproces_dynamicznie);
 
     srand(time(NULL));
 
-    // Połączenie z kolejką komunikatów
-    if ((mostek = msgget(123, 0666)) == -1) {
-        i++;
-        if(i==6) exit(1); //jesli program kapitana nie zostanie włączony w przeciagu 30s, zamknij program
-        sleep(5);
-    }
-
+    mostek = polacz_kolejke();
     szlabany=utworz_semafor(100,2);
 
     while(1) {
 
-         if (semctl(szlabany, 0, GETVAL) == -1 && (errno == EINVAL || errno == EIDRM)) {
-            printf("Pozostali chętni się rozchodzą...\n");
+        if (sprawdz_wartosc_semafora == -1 && (errno == EINVAL || errno == EIDRM)) {
+            printf("Chętni się rozchodzą...\n");
             break;
         }
 

@@ -1,20 +1,25 @@
 #include "rejs.h"
 
+int wyswietl_bledy = 1;
+
 // Funkcja do tworzenia semafora
 int utworz_semafor(key_t klucz, int nr) {
     int s = semget(klucz, nr, 0600 | IPC_CREAT);
     if (s == -1) {
-        perror("Nie udało się utworzyć semafora");
+        if (wyswietl_bledy) {
+            perror("Nie udało się utworzyć semafora");
+        }
         exit(EXIT_FAILURE);
     }
     return s;
 }
 
-
 // Funkcja do ustawiania wartości semafora
 void ustaw_wartosc_semafora(int wartosc, int nr, int sem) {
     if (semctl(sem, nr, SETVAL, wartosc) == -1) {
-        perror("Błąd ustawienia semafora");
+        if (wyswietl_bledy) {
+            perror("Błąd ustawienia semafora");
+        }
         exit(EXIT_FAILURE);
     }
 }
@@ -26,20 +31,27 @@ int sprawdz_wartosc_semafora(int nr, int s) {
 }
 
 // Funkcja do czyszczenia zasobów przed zakończeniem
-void zakoncz(int kolejka, int semafor) {
+void zakoncz(int kolejka, int semafor, pid_t pid) {
+    wyswietl_bledy=0;
     if (msgctl(kolejka, IPC_RMID, NULL) == -1) {
-        perror("Błąd usunięcia kolejki\n");
+        if (wyswietl_bledy) {
+            perror("Błąd usunięcia kolejki\n");
+        }
     }
     if (semctl(semafor, 0, IPC_RMID) == -1) {
-        perror("Błąd usuwania semafora\n");
+        if (wyswietl_bledy) {
+            perror("Błąd usuwania semafora\n");
+        }
     }
-    return;
+    kill(pid, SIGINT);
 }
 
 void otworz_fifo(const char *fifo_path, int *fd, int mode) {
     *fd = open(fifo_path, mode);
     if (*fd == -1) {
-        perror("Błąd otwarcia FIFO");
+        if (wyswietl_bledy) {
+            perror("Błąd otwarcia FIFO");
+        }
         exit(EXIT_FAILURE);
     }
 }
@@ -50,11 +62,12 @@ pid_t odbierz_pid(const char *fifo_path) {
     otworz_fifo(fifo_path, &fd, O_RDONLY);
 
     if (read(fd, &pid, sizeof(pid_t)) == -1) {
-        perror("Błąd odczytu PID");
+        if (wyswietl_bledy) {
+            perror("Błąd odczytu PID");
+        }
         close(fd);
         exit(EXIT_FAILURE);
     }
-    printf("Odebrano PID: %d\n", pid);
     close(fd);
     return pid;
 }
@@ -64,12 +77,25 @@ void wyslij_pid(pid_t pid, const char *fifo_path) {
     otworz_fifo(fifo_path, &fd, O_WRONLY);
 
     if (write(fd, &pid, sizeof(pid_t)) == -1) {
-        perror("Błąd zapisu PID");
+        if (wyswietl_bledy) {
+            perror("Błąd wysyłania PID");
+        }
         close(fd);
         exit(EXIT_FAILURE);
     }
-    printf("Wysłano PID: %d\n", pid);
     close(fd);
 }
 
 
+// Funkcja do łączenia z kolejką 
+int polacz_kolejke() {
+    int m = msgget(123, 0666);
+    if (m == -1) {
+        sleep(1);
+        if (wyswietl_bledy) {
+            perror("Blad łaczenia z kolejką\n");
+        }
+        exit(EXIT_FAILURE);
+    }
+    return m;
+} 

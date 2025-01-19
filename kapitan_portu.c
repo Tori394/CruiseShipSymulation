@@ -7,6 +7,7 @@ int szlabany;
 
 void koniec_pracy(int sig) {
     plyn = 0;
+    semctl(szlabany, 0, IPC_RMID) == -1;
     printf("Koniec pracy\n");
     exit(0);
 }
@@ -28,6 +29,7 @@ void* wyslij_sygnal_start(void* arg) {
             }
         } 
         wyslij_sygnal(pid_kapitana, SIGUSR1);
+        if(sprawdz_wartosc_semafora(1, szlabany) == -1) kill(getpid(),SIGINT);
     }
     return NULL;
 }
@@ -39,20 +41,25 @@ void* wyslij_sygnal_stop(void* arg) {
 
         if (rand() % 20 == 1) {
             printf("Nadchodzi sztorm! Kapitan portu nakazał zakończenie rejsów!\n");
-            wyslij_sygnal(pid_kapitana, SIGINT);
+            wyslij_sygnal(pid_kapitana, SIGUSR2);
             plyn = 0;
             return NULL;
         }
+        if(sprawdz_wartosc_semafora(1, szlabany) == -1) kill(getpid(),SIGINT);
     }
     return NULL;
 }
 
-int main() {
+int main(int argc, char *argv[]) {
+    if (argc != 3) {
+        fprintf(stderr, "Błąd: Niepoprawna liczba argumentów. Oczekiwane 2 argumenty.\n");
+        exit(EXIT_FAILURE);
+    }
+
     pthread_t sygnal_start, sygnal_stop;
 
-    int czas2;
-    scanf("%d", &czas);
-    scanf("%d", &czas2);
+    czas = atoi(argv[1]);
+    int czas2 = atoi(argv[2]);
 
     srand(time(NULL));
     signal(SIGINT, koniec_pracy);
@@ -67,6 +74,18 @@ int main() {
 
     if (unlink("./fifo") == -1) {
         perror("Błąd usuwania FIFO");
+        exit(EXIT_FAILURE);
+    }
+
+    if (czas <= 0) {
+        fprintf(stderr, "Podane wartosci muszą być większe niż 0\n");
+        kill(pid_kapitana, SIGINT);
+        exit(EXIT_FAILURE);
+    }
+
+    if (czas <= czas2 ) {
+        fprintf(stderr, "Czas pomiedzy rejsami powinien byc większy od czasu trwania rejsu\n");
+        kill(pid_kapitana, SIGINT);
         exit(EXIT_FAILURE);
     }
 

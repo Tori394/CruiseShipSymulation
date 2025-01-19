@@ -33,7 +33,7 @@ struct pasazer {
 int utworz_semafor(key_t klucz, int nr);
 void ustaw_wartosc_semafora(int wartosc, int nr, int sem);
 int sprawdz_wartosc_semafora(int nr, int s);
-void zakoncz(int kolejka, int semafor);
+void zakoncz(int kolejka, int semafor, pid_t pid);
 void wyslij_pid(pid_t pid, const char *fifo_path);
 pid_t odbierz_pid(const char *fifo_path);
 
@@ -42,6 +42,10 @@ pid_t odbierz_pid(const char *fifo_path);
 //pid_t odbierz_pid(const char *fifo_path);
 //int sprawdz_wartosc_semafora(int nr, int s);
 //int utworz_semafor(key_t klucz, int nr);
+
+//============ FUNKCJE DLA PASAŻERA =====================
+//int utworz_semafor(key_t klucz, int nr);
+int polacz_kolejke();
 
 //=================== INNE ==============================
 void otworz_fifo(const char *fifo_path, int *fd, int mode);

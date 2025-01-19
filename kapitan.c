@@ -8,7 +8,12 @@ pid_t pid_kapitana;
 
 // Obsługa sygnału SIGINT PANIC BUTTON
 void odbierz_sygnal_stop(int sig) {
-    plyn = 0;
+    plyn=0;
+}
+
+void koniec_pracy(int sig) {
+    zakoncz(mostek, szlabany, pid_kapitana);
+    exit(EXIT_FAILURE);
 }
 
 void odbierz_sygnal_start(int sig) {
@@ -49,30 +54,25 @@ void podnies_semafor(int nr) {
 
 
 
-int main() {
-    int liczba_pasazerow = 0;
-    int pojemnosc_mostka, pojemnosc_statku, ilosc_rejsow_dzis, czas_rejsu;
+int main(int argc, char *argv[]) {
+    if (argc != 5) {
+        fprintf(stderr, "Błąd: Niepoprawna liczba argumentów. Oczekiwane 4 argumenty.\n");
+        exit(EXIT_FAILURE);
+    }
 
-    scanf("%d", &pojemnosc_mostka);
-    scanf("%d", &pojemnosc_statku); //dodac obdluge bledow!
-    scanf("%d", &ilosc_rejsow_dzis);
-    scanf("%d", &czas_rejsu);
+    int pojemnosc_mostka = atoi(argv[1]);
+    int pojemnosc_statku = atoi(argv[2]);
+    int ilosc_rejsow_dzis = atoi(argv[3]);
+    int czas_rejsu = atoi(argv[4]);
 
     pid_t pasazerowie[pojemnosc_statku]; // Tablica na PID-y pasażerów
 
-    struct pasazer pass;
-    struct msqid_ds buf;
-    int val = pojemnosc_statku;
-    int val2 = 0;
-
-
+    signal(SIGINT, koniec_pracy);
+    signal(SIGUSR1, odbierz_sygnal_start);
+    signal(SIGUSR2, odbierz_sygnal_stop);
+    
     if (mkfifo("./fifo2", 0666) == -1 && errno != EEXIST) {
         perror("Błąd tworzenia FIFO2");
-        exit(EXIT_FAILURE);
-    }
-    // Tworzenie kolejki komunikatów
-    if ((mostek = msgget(123, IPC_CREAT | 0666)) == -1) {
-        perror("Blad tworzenia kolejki\n");
         exit(EXIT_FAILURE);
     }
 
@@ -84,10 +84,37 @@ int main() {
         exit(EXIT_FAILURE);
     }
 
-    // Wysłanie PID do portu
+    // Obsługa złych danych wejściowych
+
+    if (ilosc_rejsow_dzis<=0 || czas_rejsu <=0 || pojemnosc_mostka<=0 || pojemnosc_statku <0) {
+        fprintf(stderr, "Podane wartosci muszą być większe niż 0\n");
+        zakoncz(mostek, szlabany, pid_kapitana);
+        exit(EXIT_FAILURE);
+    }
     
-    signal(SIGINT, odbierz_sygnal_stop);
-    signal(SIGUSR1, odbierz_sygnal_start);
+    if (pojemnosc_mostka > pojemnosc_statku) {
+        fprintf(stderr, "Pojemność mostka powinna być mniejsza niż pojemność statku\n");
+        zakoncz(mostek, szlabany, pid_kapitana);
+        exit(EXIT_FAILURE);
+    }
+
+    if (pojemnosc_statku > 300) {
+        fprintf(stderr, "Statek nie może być tak duży!\n");
+        zakoncz(mostek, szlabany, pid_kapitana);
+        exit(EXIT_FAILURE);
+    }
+
+    // Tworzenie kolejki komunikatów
+    if ((mostek = msgget(123, IPC_CREAT | 0666)) == -1) {
+        perror("Blad tworzenia kolejki\n");
+        exit(EXIT_FAILURE);
+    }
+
+    int liczba_pasazerow = 0;
+    struct pasazer pass;
+    struct msqid_ds buf;
+    int val = pojemnosc_statku;
+    int val2 = 0;
 
     // Tworzenie semafora
     szlabany = utworz_semafor(100, 2);
@@ -169,7 +196,6 @@ int main() {
             printf("Rejsy zostały wstrzymane\n");
             break;
     }
-    zakoncz(mostek, szlabany);
-    kill(pid_kapitana, SIGINT);
+    zakoncz(mostek, szlabany, pid_kapitana);
     return 0;
 }
