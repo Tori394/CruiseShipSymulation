@@ -1,51 +1,15 @@
+#include "rejs.h"
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <sys/types.h>
-#include <sys/ipc.h>
-#include <sys/msg.h>
-#include <unistd.h>
-#include <signal.h>
-#include <errno.h>
-#include <sys/sem.h>
-#include <time.h>
-
-#define NA_STATEK 3
-#define ZE_STATKU 1
-#define ROZMIAR_PASAZERA (sizeof(pid_t))
-#define MIEJSCE_NA_MOSTKU 0
-#define SZLABAN 1
 
 int mostek;  //kolejka komunikatow
 int szlabany; //semafor
 
-// Struktura pasażera
-struct pasazer {
-    long type;
-    pid_t pas_pid;
-};
 
 // Obsługa sygnału SIGINT
 void handler(int sig) {
     exit(EXIT_SUCCESS);
 }
 
-// Funkcja tworząca semafor
-void utworz_semafor(key_t klucz, int nr) {
-    szlabany = semget(klucz, nr, 0600 | IPC_CREAT);
-    if (szlabany == -1) {
-        perror("Nie udalo sie utworzyc semafora");
-        exit(EXIT_FAILURE);
-    }
-}
-
-// Funkcja ustawiająca wartość semafora
-void ustaw_wartosc_semafora(int wartosc, int nr) {
-    if (semctl(szlabany, nr, SETVAL, wartosc) == -1) {
-        perror("Blad ustawienia semafora");
-        exit(EXIT_FAILURE);
-    }
-}
 
 // Funkcja opuszczania semafora -1
 void opusc_semafor(int nr) {
@@ -89,7 +53,7 @@ int main() {
         sleep(5);
     }
 
-    utworz_semafor(100,2);
+    szlabany=utworz_semafor(100,2);
 
     while(1) {
 
