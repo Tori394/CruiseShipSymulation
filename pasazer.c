@@ -17,7 +17,6 @@
 
 int mostek;  //kolejka komunikatow
 int szlabany; //semafor
-int dzialaj=1;
 
 // Struktura pasażera
 struct pasazer {
@@ -27,7 +26,6 @@ struct pasazer {
 
 // Obsługa sygnału SIGINT
 void handler(int sig) {
-    dzialaj=0;
     exit(EXIT_SUCCESS);
 }
 
@@ -84,21 +82,28 @@ int main() {
     srand(time(NULL));
 
     // Połączenie z kolejką komunikatów
-    while ((mostek = msgget(123, 0666)) == -1) {
+    if ((mostek = msgget(123, 0666)) == -1) {
         i++;
-        if(i==12) exit(1); //jesli program kapitana nie zostanie włączony w przeciagu minuty, zamknij program
+        if(i==6) exit(1); //jesli program kapitana nie zostanie włączony w przeciagu 30s, zamknij program
         sleep(5);
     }
 
     utworz_semafor(100,2);
 
-    while(dzialaj) {
-        czas_miedzy_pasazerami = rand() % 10; 
+    while(1) {
+
+         if (semctl(szlabany, 0, GETVAL) == -1 && (errno == EINVAL || errno == EIDRM)) {
+            printf("Pozostali chętni się rozchodzą...\n");
+            break;
+        }
+
+        czas_miedzy_pasazerami = rand() % 10 + 5; 
         sleep(czas_miedzy_pasazerami);
+
         if(fork() == 0) {  // Proces dziecka (pasażer)
             pass.type = NA_STATEK;
             pass.pas_pid = getpid();
-            ilosc_pasazerow++;
+            //ilosc_pasazerow++;
 
             // Próba wejścia na statek
             printf("Do kolejki w rejs ustawił się pasażer %d!\n", pass.pas_pid);

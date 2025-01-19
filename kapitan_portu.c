@@ -31,6 +31,7 @@ void pobierz_dane() {
         close(fd);
         exit(EXIT_FAILURE);
     }
+    printf("Kaitan portu odczytał PID kapitana: %d\nRozpoczynanie symulacji\n\n", pid_kapitana);
 
     unlink("./fifo");
     close(fd);
@@ -46,18 +47,14 @@ void utworz_semafor(key_t klucz, int nr) {
 
 int sprawdz_wartosc_semafora(int nr) {
     int val = semctl(szlabany, nr, GETVAL);
-    if (val == -1) {
-        perror("Blad odczytu wartosci semafora");
-        exit(EXIT_FAILURE);
-    }
     return val;
 }
 
 // Funkcja wątku, który wysyła sygnały startu co określony czas
 void* wyslij_sygnal_start(void* arg) {
-    while (plyn) {
+    while (sprawdz_wartosc_semafora(1)!=-1 && plyn) {
         sleep(czas/2); // Czekaj czas trwania rejsu
-        if (sprawdz_wartosc_semafora(1)==0 && rand() % 2 == 1) { // Jesli statek zapelni sie przed czasem jest 50% szans, że kapitan wysle sygnał do wcześniejszego startu
+        if (sprawdz_wartosc_semafora(1)==0 && sprawdz_wartosc_semafora(0)!=0 && rand() % 2 == 1) { // Jesli statek zapelni sie przed czasem jest 50% szans, że kapitan wysle sygnał do wcześniejszego startu
             if (kill(pid_kapitana, SIGUSR1) == -1) {
                 perror("Błąd wysyłania sygnału startu");
                 exit(EXIT_FAILURE);
@@ -102,11 +99,10 @@ int main() {
     srand(time(NULL));
 
     // Obsługa sygnału SIGINT
-    signal(SIGINT, zakoncz_program);
+    signal(SIGINT, panic_button);
 
     // Pobranie PID kapitana
     pobierz_dane();
-    printf("Kaitan portu odczytał PID kapitana: %d\nRozpoczynanie symulacji\n\n", pid_kapitana);
     utworz_semafor(100,2);
 
     // Tworzenie wątku wysyłającego sygnał startu

@@ -76,24 +76,34 @@ int sprawdz_wartosc_semafora(int nr) {
 // Funkcja opuszczania semafora -1
 void opusc_semafor(int nr) {
     struct sembuf op = {nr, -1, 0};
-    if (semop(szlabany, &op, 1) == -1) {
-        perror("Blad opuszczania semafora");
-        exit(EXIT_FAILURE);
+    while (semop(szlabany, &op, 1) == -1) {
+        if (errno == EINTR) {
+            // Operacja została przerwana przez sygnał, spróbuj ponownie i anuluj sygnał
+            continue;
+        } else {
+            perror("Blad opuszczania semafora");
+            exit(EXIT_FAILURE);
+        }
     }
 }
 
 // Funkcja podnoszenia semafora +1
 void podnies_semafor(int nr) {
     struct sembuf op = {nr, 1, 0};
-    if (semop(szlabany, &op, 1) == -1) {
-        perror("Blad podnoszenia semafora");
-        exit(EXIT_FAILURE);
+    while (semop(szlabany, &op, 1) == -1) {
+        if (errno == EINTR) {
+            // Operacja została przerwana przez sygnał, spróbuj ponownie i anuluj sygnał
+            continue;
+        } else {
+            perror("Blad podnoszenia semafora");
+            exit(EXIT_FAILURE);
+        }
     }
 }
 
 void odbierz_sygnal_start(int sig) {
     if (sig == SIGUSR1) {
-        printf("Kapitan otrzymał sygnał do startu, zamykamy wejście!\n");
+        printf("Kapitan otrzymał sygnał do startu!\n");
         ustaw_wartosc_semafora(0, SZLABAN);
         startuj = 1;
     }
@@ -127,7 +137,7 @@ int main() {
     int liczba_pasazerow=0;
     int pojemnosc_mostka=4;
     int pojemnosc_statku=10;
-    int ilosc_rejsow_dzis=10;
+    int ilosc_rejsow_dzis=5;
     int czas_rejsu=15;
     pid_t pasazerowie[pojemnosc_statku]; //ZAŁOŻENIE DO TESTOW ZE POJEMNOSC STATKU TO 7
     struct pasazer pass;
@@ -159,20 +169,21 @@ int main() {
 
             while ( val2 < pojemnosc_mostka || val > 0 ) {
                 if (msgrcv(mostek, &pass, ROZMIAR_PASAZERA, NA_STATEK, 0) == -1) {
-                    if (errno == EINTR) continue; // Ignorowanie przerwań
-                    perror("Blad pobrania pasazera na statek");
-                    break;
+                    if (errno == EINTR) // Ignorowanie przerwań
+                    {
+                        val = sprawdz_wartosc_semafora(SZLABAN);
+                        val2 = sprawdz_wartosc_semafora(MIEJSCE_NA_MOSTKU);
+                        continue;
+                    }
                 }
                 pasazerowie[liczba_pasazerow++] = pass.pas_pid; // Zapisz PID pasażera
                 podnies_semafor(MIEJSCE_NA_MOSTKU);
                 printf("Kapitan wpuscil na statek pasażera %d\n", pass.pas_pid);
-                //if (startuj) break;
                 val = sprawdz_wartosc_semafora(SZLABAN);
                 val2 = sprawdz_wartosc_semafora(MIEJSCE_NA_MOSTKU);
-                printf("val: %d, %d\n",val, val2);
             }
 
-                printf("Na statek weszło %d pasażerów, za niedługo wypłynie\n", liczba_pasazerow);
+                printf("Na statek weszło %d pasażerów\n", liczba_pasazerow);
             
                 while(!startuj && plyn) {sleep(1);}
                         
@@ -185,7 +196,7 @@ int main() {
                             continue;
                         }
                         else{
-                            printf("\nRejs z %d pasażerami się rozpoczął\n", liczba_pasazerow);
+                            printf("Rejs z %d pasażerami się rozpoczął\n", liczba_pasazerow);
                             sleep(czas_rejsu); // Symulacja rejsu
                             printf("Rejs zakończony\nNa dzisiaj zaplanowano jeszcze %d rejsów\n", ilosc_rejsow_dzis);
                             ilosc_rejsow_dzis--;
@@ -200,12 +211,12 @@ int main() {
                 for (int i = 0; i < liczba_pasazerow; i++) {
                 pass.type = ZE_STATKU;
                     pass.pas_pid = pasazerowie[i];
-                    if (msgsnd(mostek, &pass, ROZMIAR_PASAZERA, 0) == -1) {
-                        perror("Blad wyslania pasażera ze statku");
-                    } else {
+                    while (msgsnd(mostek, &pass, ROZMIAR_PASAZERA, 0) == -1) {
+                        if (errno == EINTR) // Ignorowanie przerwań
+                        continue;
+                    } 
                         opusc_semafor(MIEJSCE_NA_MOSTKU);
                         //printf("Kapitan wypuścił ze statku pasażera %d\n", pass.pas_pid);
-                    }
                 }  
 
                 liczba_pasazerow=0;
@@ -216,7 +227,8 @@ int main() {
                     exit(EXIT_FAILURE);
                 }
                 sleep(1); // Odczekanie przed ponownym sprawdzeniem
-                }   
+                }  
+                printf("Mostek jest pusty, inni pasażerownie mogą znowu wejść\n");
                 startuj=0;         
         }
 
@@ -228,8 +240,6 @@ int main() {
                 printf("Rejsy zostały wstrzymane\n");
                 break;
         }
-        printf("Pozostali chętni się rozchodzą...\n");
-    wait(NULL);
     zakoncz();
     return 0;
 }
