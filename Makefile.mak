@@ -24,6 +24,17 @@ test3:
 	./kp 5 20 &
 	./p &
 
+test4:
+	./k 5 10 3 15 &
+	./kp 30 15 &
+	./p &
+
+test5:
+	./k 15 40 8 30 &
+	./kp 120 30 &
+	./p &
+
+
 user:
 	@echo "Podaj pojemnosc mostka:"
 	@read pojemnosc_mostka; \
@@ -37,7 +48,7 @@ user:
 	read czas; \
 	./k $$pojemnosc_mostka $$pojemnosc_statku $$ilosc_rejsow_dzis $$czas_rejsu & \
 	./kp $$czas $$czas_rejsu & \
-	./p &
+	./p & 
 
 clean:
 	rm -f k kp p

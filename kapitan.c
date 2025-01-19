@@ -18,7 +18,7 @@ void koniec_pracy(int sig) {
 
 void odbierz_sygnal_start(int sig) {
     if (sig == SIGUSR1) {
-        printf("Kapitan otrzymał sygnał do startu!\n");
+        printf("\033[32mKapitan otrzymał sygnał do startu!\033[0m\n");
         ustaw_wartosc_semafora(0, SZLABAN, szlabany);
         startuj = 1;
     }
@@ -120,11 +120,11 @@ int main(int argc, char *argv[]) {
     szlabany = utworz_semafor(100, 2);
     ustaw_wartosc_semafora(pojemnosc_mostka, MIEJSCE_NA_MOSTKU, szlabany); // semafor 0 - kontrola wielkości mostka
 
+
     while (ilosc_rejsow_dzis && plyn) {
         ustaw_wartosc_semafora(pojemnosc_statku, SZLABAN, szlabany); // semafor 1 - kontrola liczby ludzi wchodzących na statek
         val = pojemnosc_statku;
         val2 = pojemnosc_mostka;
-        printf("Szlaban się otwiera...\n");
 
         while (val2 < pojemnosc_mostka || val > 0) {
             if (msgrcv(mostek, &pass, ROZMIAR_PASAZERA, NA_STATEK, 0) == -1) {
@@ -136,12 +136,12 @@ int main(int argc, char *argv[]) {
             }
             pasazerowie[liczba_pasazerow++] = pass.pas_pid; // Zapisz PID pasażera
             podnies_semafor(MIEJSCE_NA_MOSTKU);
-            printf("Kapitan wpuscil na statek pasażera %d\n", pass.pas_pid);
+            printf("\033[36mKapitan wpuscił na statek pasażera \033[0m%d\n", pass.pas_pid);
             val = sprawdz_wartosc_semafora(SZLABAN, szlabany);
             val2 = sprawdz_wartosc_semafora(MIEJSCE_NA_MOSTKU, szlabany);
         }
 
-        printf("Na statek weszło %d pasażerów\n", liczba_pasazerow);
+        printf("\033[36mNa statek weszło \033[0m%d\033[36m pasażerów\033[0m\n", liczba_pasazerow);
 
         while (!startuj && plyn) {
             sleep(1);
@@ -151,16 +151,16 @@ int main(int argc, char *argv[]) {
         if (plyn) {
             if (startuj) {
                 if (liczba_pasazerow == 0) {
-                    printf("Statek nie odplynie bez pasażerów\n");
+                    printf("\033[31mStatek nie odpłynie bez pasażerów\033[0m\n");
                     continue;
                 } else {
-                    printf("Rejs z %d pasażerami się rozpoczął\n", liczba_pasazerow);
+                    printf("\033[36mRejs z \033[0m%d\033[36m pasażerami się rozpoczął\033[0m\n", liczba_pasazerow);
                     sleep(czas_rejsu); // Symulacja rejsu
-                    printf("Rejs zakończony\nNa dzisiaj zaplanowano jeszcze %d rejsów\n", --ilosc_rejsow_dzis);
+                    printf("\033[36mRejs zakończony\033[0m\n\033[36mNa dzisiaj zaplanowano jeszcze \033[31m%d\033[36m rejsów\033[0m\n", --ilosc_rejsow_dzis);
                 }
             }
         } else {
-            printf("Rejs się jednak nie odbędzie\n");
+            printf("\033[36mRejs się jednak nie odbędzie\033[0m\n");
         }
 
         // Wypuszczenie pasażerów ze statku
@@ -172,6 +172,7 @@ int main(int argc, char *argv[]) {
                     continue;
                 }
             }
+            printf("\033[33mPasażer \033[0m%d\033[33m zszedł na ląd\033[0m\n", pass.pas_pid);
             opusc_semafor(MIEJSCE_NA_MOSTKU);
         }
 
@@ -184,16 +185,16 @@ int main(int argc, char *argv[]) {
             }
             sleep(1);
         }
-        printf("Mostek jest pusty, inni pasażerownie mogą znowu wejść\n");
+        printf("\033[36mMostek jest pusty, inni pasażerowie mogą znowu wejść\033[0m\n");
         startuj = 0;
     }
 
     switch (ilosc_rejsow_dzis) {
         case 0:
-            printf("Wykonano wszystkie zaplanowane rejsy na dziś\n");
+            printf("\033[36mWykonano wszystkie zaplanowane rejsy na dziś\033[0m\n");
             break;
         default:
-            printf("Rejsy zostały wstrzymane\n");
+            printf("\033[31mRejsy zostały wstrzymane\033[0m\n");
             break;
     }
     zakoncz(mostek, szlabany, pid_kapitana);

@@ -45,7 +45,6 @@ pid_t odbierz_pid(const char *fifo_path);
 
 //============ FUNKCJE DLA PASAŻERA =====================
 //int utworz_semafor(key_t klucz, int nr);
-int polacz_kolejke();
 
 //=================== INNE ==============================
 void otworz_fifo(const char *fifo_path, int *fd, int mode);

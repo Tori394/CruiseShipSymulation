@@ -43,6 +43,12 @@ void zakoncz(int kolejka, int semafor, pid_t pid) {
             perror("Błąd usuwania semafora\n");
         }
     }
+    if (unlink("./fifo2") == -1) {
+        if (wyswietl_bledy) {
+            perror("Błąd usuwania FIFO");
+        }
+        exit(EXIT_FAILURE);
+    }
     kill(pid, SIGINT);
 }
 
@@ -86,16 +92,3 @@ void wyslij_pid(pid_t pid, const char *fifo_path) {
     close(fd);
 }
 
-
-// Funkcja do łączenia z kolejką 
-int polacz_kolejke() {
-    int m = msgget(123, 0666);
-    if (m == -1) {
-        sleep(1);
-        if (wyswietl_bledy) {
-            perror("Blad łaczenia z kolejką\n");
-        }
-        exit(EXIT_FAILURE);
-    }
-    return m;
-} 
