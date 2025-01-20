@@ -8,6 +8,7 @@ pid_t pid_kapitana;
 
 // Obsługa sygnału SIGINT PANIC BUTTON
 void odbierz_sygnal_stop(int sig) {
+    ustaw_wartosc_semafora(0, SZLABAN, szlabany);
     plyn=0;
 }
 
@@ -140,7 +141,7 @@ int main(int argc, char *argv[]) {
             val = sprawdz_wartosc_semafora(SZLABAN, szlabany);
             val2 = sprawdz_wartosc_semafora(MIEJSCE_NA_MOSTKU, szlabany);
         }
-
+        if (buf.msg_qnum == 0) printf("\033[36mMostek jest pusty\033[0m\n");
         printf("\033[36mNa statek weszło \033[0m%d\033[36m pasażerów\033[0m\n", liczba_pasazerow);
 
         while (!startuj && plyn) {

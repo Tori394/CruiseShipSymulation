@@ -92,3 +92,12 @@ void wyslij_pid(pid_t pid, const char *fifo_path) {
     close(fd);
 }
 
+
+void wyslij_sygnal(pid_t pid, int sygnal) {
+    if (kill(pid, sygnal) == -1) {
+        if (wyswietl_bledy) {
+            perror("Błąd wysyłania sygnału");
+        }
+        kill(getpid(), SIGINT);
+    }
+}

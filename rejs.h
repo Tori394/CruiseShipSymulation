@@ -42,6 +42,7 @@ pid_t odbierz_pid(const char *fifo_path);
 //pid_t odbierz_pid(const char *fifo_path);
 //int sprawdz_wartosc_semafora(int nr, int s);
 //int utworz_semafor(key_t klucz, int nr);
+void wyslij_sygnal(pid_t pid, int sygnal);
 
 //============ FUNKCJE DLA PASAŻERA =====================
 //int utworz_semafor(key_t klucz, int nr);
