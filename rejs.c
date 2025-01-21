@@ -1,6 +1,6 @@
 #include "rejs.h"
 
-int wyswietl_bledy = 1;
+int wyswietl_bledy = 1; // Flaga wyświetlania błędów
 
 // Funkcja do tworzenia semafora
 int utworz_semafor(key_t klucz, int nr) {
@@ -26,13 +26,12 @@ void ustaw_wartosc_semafora(int wartosc, int nr, int sem) {
 
 // Funkcja do sprawdzania wartości semafora
 int sprawdz_wartosc_semafora(int nr, int s) {
-    int val = semctl(s, nr, GETVAL);
-    return val;
+    return semctl(s, nr, GETVAL);
 }
 
 // Funkcja do czyszczenia zasobów przed zakończeniem
 void zakoncz(int kolejka, int semafor, pid_t pid) {
-    wyswietl_bledy=0;
+    wyswietl_bledy = 0;
     if (msgctl(kolejka, IPC_RMID, NULL) == -1) {
         if (wyswietl_bledy) {
             perror("Błąd usunięcia kolejki\n");
@@ -52,6 +51,7 @@ void zakoncz(int kolejka, int semafor, pid_t pid) {
     kill(pid, SIGINT);
 }
 
+// Funkcja do otwierania FIFO w określonym trybie
 void otworz_fifo(const char *fifo_path, int *fd, int mode) {
     *fd = open(fifo_path, mode);
     if (*fd == -1) {
@@ -62,6 +62,7 @@ void otworz_fifo(const char *fifo_path, int *fd, int mode) {
     }
 }
 
+// Funkcja do odbierania PID z FIFO
 pid_t odbierz_pid(const char *fifo_path) {
     pid_t pid;
     int fd;
@@ -78,6 +79,7 @@ pid_t odbierz_pid(const char *fifo_path) {
     return pid;
 }
 
+// Funkcja do wysyłania PID do FIFO
 void wyslij_pid(pid_t pid, const char *fifo_path) {
     int fd;
     otworz_fifo(fifo_path, &fd, O_WRONLY);
@@ -92,7 +94,7 @@ void wyslij_pid(pid_t pid, const char *fifo_path) {
     close(fd);
 }
 
-
+// Funkcja do wysyłania sygnału do procesu
 void wyslij_sygnal(pid_t pid, int sygnal) {
     if (kill(pid, sygnal) == -1) {
         if (wyswietl_bledy) {
@@ -100,4 +102,14 @@ void wyslij_sygnal(pid_t pid, int sygnal) {
         }
         kill(getpid(), SIGINT);
     }
+}
+
+// Funkcja do łączenia z kolejką wiadomości
+int polacz_kolejke(int s) {
+    int m = msgget(123, 0666);
+    if (m == -1) {
+        semctl(s, 0, IPC_RMID);
+        exit(EXIT_FAILURE);
+    }
+    return m;
 }

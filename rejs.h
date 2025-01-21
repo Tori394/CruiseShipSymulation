@@ -16,17 +16,16 @@
 #include <fcntl.h>
 #include <pthread.h>
 
-#define NA_STATEK 3
-#define ZE_STATKU 1
-#define ROZMIAR_PASAZERA (sizeof(pid_t))
-#define MIEJSCE_NA_MOSTKU 0
-#define SZLABAN 1
-
+#define NA_STATEK 3 // Kierunek wiadomości w kolejce, wchodzenie na statek
+#define ZE_STATKU 1 // Kierunek wiadomości w kolejce, wychodzenie ze statku
+#define ROZMIAR_PASAZERA (sizeof(pid_t)) // Rozmiar struktury pasażera
+#define MIEJSCE_NA_MOSTKU 0 // Numer semafora dla miejsca na mostku
+#define SZLABAN 1 // Numer semafora dla szlabanu
 
 // Struktura pasażera
 struct pasazer {
-    long type;
-    pid_t pas_pid;
+    long type;  // Typ wiadomości
+    pid_t pas_pid;  // PID pasażera
 };
 
 //============ FUNKCJE DLA KAPITANA =====================
@@ -46,6 +45,7 @@ void wyslij_sygnal(pid_t pid, int sygnal);
 
 //============ FUNKCJE DLA PASAŻERA =====================
 //int utworz_semafor(key_t klucz, int nr);
+int polacz_kolejke(int s);
 
 //=================== INNE ==============================
 void otworz_fifo(const char *fifo_path, int *fd, int mode);

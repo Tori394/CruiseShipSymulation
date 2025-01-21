@@ -30,24 +30,19 @@ test4:
 	./p &
 
 test5:
-	./k 1 1 10 1 &
-	./kp 10 1 0 & 
+	./k 2 5 3 1 &
+	./kp 60 1 0 & 
 	./p &
 
 test6:
-	./k 1 60 5 1 &
-	./kp 10 1 100 & 
-	./p &
-
-test7:
-	./k 1 1 5 9 &
-	./kp 10 9 100 & 
+	./k 2 60 5 1 &
+	./kp 11 1 100 & 
 	./p &
 
 user:
-	@echo "Podaj pojemnosc mostka:"
+	@echo "Podaj pojemnosc mostka (minimum 2):"
 	@read pojemnosc_mostka; \
-	echo "Podaj pojemnosc statku:"; \
+	echo "Podaj pojemnosc statku (minimum 5):"; \
 	read pojemnosc_statku; \
 	echo "Podaj ilosc rejsow dzisiaj:"; \
 	read ilosc_rejsow_dzis; \
@@ -59,6 +54,7 @@ user:
 	read szansa_na_burze; \
 	./k $$pojemnosc_mostka $$pojemnosc_statku $$ilosc_rejsow_dzis $$czas_rejsu & \
 	./kp $$czas $$czas_rejsu $$szansa_na_burze & \
+	sleep 1; \
 	./p & 
 
 clean:
