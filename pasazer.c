@@ -3,6 +3,8 @@
 int mostek;  // Kolejka komunikatów do komunikacji z pasażerami
 int szlabany; // Semafor kontrolujący dostęp do zasobów
 int ilosc_pasazerow = 0; 
+int limit=20000;
+pid_t pid;
 
 // Obsługa sygnału SIGINT
 void koniec_pracy(int sig) {
@@ -38,6 +40,7 @@ int main() {
     int i = 0;
     int czas_miedzy_pasazerami;
 
+
     // Rejestracja obsługi sygnałów
     signal(SIGINT, koniec_pracy); 
     signal(SIGCHLD, usun_podproces_dynamicznie); 
@@ -48,21 +51,25 @@ int main() {
     mostek = polacz_kolejke(szlabany); // Łączenie się do kolejki komunikatów
 
     while (1) {
+
         // Sprawdzenie, czy semafor istnieje i jest dostępny
         if (sprawdz_wartosc_semafora(1, szlabany) == -1 && (errno == EINVAL || errno == EIDRM)) {
             break; // Zakończenie pętli w przypadku usunięcia semafora
         }
 
         // Dodawanie nowych pasażerów, jeśli ich liczba nie przekroczyła limitu
-        if (ilosc_pasazerow < 400) {
-            czas_miedzy_pasazerami = rand() % 10 + 5; // Losowy czas oczekiwania
-            sleep(czas_miedzy_pasazerami);
+        if (ilosc_pasazerow < limit) {
+            //czas_miedzy_pasazerami = rand() % 5 + 5; // Losowy czas oczekiwania
+            //sleep(czas_miedzy_pasazerami);
 
-            if (fork() == 0) {  // Tworzenie procesu dziecka (pasażera)
+            switch (fork())
+            {
+            case 0:
                 pass.type = NA_STATEK; // Typ komunikatu: pasażer chce wejść na statek
                 pass.pas_pid = getpid(); // PID procesu dziecka
+                pid=getpid();
                 ilosc_pasazerow++;
-
+                printf("DEBUG:                   Ilosc PP %d,     Ostatni PID: %d\n", ilosc_pasazerow, pid);
                 printf("\033[33mDo kolejki w rejs ustawił się pasażer \033[0m%d\033[33m!\033[0m\n", pass.pas_pid);
 
                 // Próba wejścia na statek (opuszczenie semaforów)
@@ -86,6 +93,15 @@ int main() {
                 printf("\033[90mPasażer %d odchodzi\033[0m\n", pass.pas_pid);
 
                 exit(0); // Zakończenie procesu dziecka
+                break;
+            case -1:
+                limit=ilosc_pasazerow-ilosc_pasazerow/10;
+                //kill(pid, SIGTERM);
+                while (waitpid(-1, NULL, 0) > 0);
+                break;
+            default:
+                ilosc_pasazerow++;
+                break;
             }
         }
     }
@@ -94,6 +110,6 @@ int main() {
     printf("\033[31mChętni się rozchodzą...\033[0m\n");
     while (waitpid(-1, NULL, 0) > 0);
     printf("Port jest pusty, wszyscy się rozeszli\n");
-
+    printf("Limit: %d\n", limit);
     return 0; // Zakończenie programu
 }
