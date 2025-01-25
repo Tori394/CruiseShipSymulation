@@ -209,6 +209,7 @@ int main(int argc, char *argv[]) {
             printf("\033[33mPasażer \033[0m%d\033[33m zszedł na ląd\033[0m\n", pass.pas_pid);
 
         }
+        }
         printf("Pasazerowie zeszli\n");
         
         while (msgctl(mostek, IPC_STAT, &buf) == 0 && buf.msg_qnum > 0) {
@@ -235,7 +236,7 @@ int main(int argc, char *argv[]) {
     }
 
      while (msgctl(mostek, IPC_STAT, &buf) == 0 && buf.msg_qnum > 0) {
-            printf("czekam...\n")
+            printf("czekam...\n");
         }
     
 
