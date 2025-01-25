@@ -6,6 +6,8 @@ Instrukcja Makefile:
 
 •	„make user” – uruchamia symulacje z danymi do wprowadzenia przez użytkownika
 
+•	„make clean” – czyszczenie
+
 
 Opis projektu:
 
