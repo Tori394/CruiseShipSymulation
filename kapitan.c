@@ -20,11 +20,9 @@ void odbierz_sygnal_stop(int sig) {
 
 // Obsługa sygnału SIGUSR1
 void odbierz_sygnal_start(int sig) {
-    if (sig == SIGUSR1) {
-        printf("\033[32mKapitan otrzymał sygnał do startu!\033[0m\n");
+     //   printf("\033[32mKapitan otrzymał sygnał do startu!\033[0m\n");
         ustaw_wartosc_semafora(0, SZLABAN, szlabany);
         startuj = 1;
-    }
 }
 
 // Funkcja opuszczania semafora -1
@@ -130,11 +128,56 @@ int main(int argc, char *argv[]) {
         ustaw_wartosc_semafora(pojemnosc_statku, SZLABAN, szlabany); // semafor 1 - kontrola liczby ludzi wchodzących na statek
 
         // Pętla obsługi pasażerów
-        while (sprawdz_wartosc_semafora(SZLABAN, szlabany) > 0 || sprawdz_wartosc_semafora(MIEJSCE_NA_MOSTKU, szlabany) < pojemnosc_mostka) {
+        while (sprawdz_wartosc_semafora(SZLABAN, szlabany) > 0 ) {
             if (msgrcv(mostek, &pass, ROZMIAR_PASAZERA, NA_STATEK, 0) == -1) {
                 if (errno == EINTR) { // Ignorowanie przerwań
-                    val = sprawdz_wartosc_semafora(SZLABAN, szlabany);
-                    val2 = sprawdz_wartosc_semafora(MIEJSCE_NA_MOSTKU, szlabany);
+                    continue;
+                }
+            }
+            pasazerowie[liczba_pasazerow++] = pass.pas_pid; // Zapisz PID pasażera
+            podnies_semafor(MIEJSCE_NA_MOSTKU);
+            printf("\033[36mKapitan wpuscił na statek pasażera \033[0m%d\n", pass.pas_pid);
+        }
+
+       while (1) {
+    msgctl(mostek, IPC_STAT, &buf);
+    if (msgrcv(mostek, &pass, ROZMIAR_PASAZERA, NA_STATEK, IPC_NOWAIT) == -1) {
+        if (errno == ENOMSG) {
+            if (semctl(szlabany, MIEJSCE_NA_MOSTKU, GETNCNT) == 0 && 
+                sprawdz_wartosc_semafora(MIEJSCE_NA_MOSTKU, szlabany) == pojemnosc_mostka &&
+                buf.msg_qnum == 0) {
+                break; // Zakończ pętlę, jeśli nie ma więcej pasażerów i mostek jest pełny
+            }
+        } else {
+            if (errno == EINTR) continue; // Ignorowanie przerwań
+            perror("Błąd podczas pobierania wiadomości");
+            exit(EXIT_FAILURE);
+        }
+    } else {
+        pasazerowie[liczba_pasazerow++] = pass.pas_pid; // Zapisz PID pasażera
+        podnies_semafor(MIEJSCE_NA_MOSTKU);
+        printf("\033[36mKapitan wpuscił na statek pasażera \033[0m%d\n", pass.pas_pid);
+    }
+    }
+    
+
+        msgctl(mostek, IPC_STAT, &buf);
+        printf("Na mostku jeszcze: %ld\n", buf.msg_qnum);
+        //printf("\033[36mMostek jest pusty\033[0m\n");
+      //  printf("%d, %d\n", val,val2);
+        printf("\033[36mNa statek weszło \033[0m%d\033[36m pasażerów\033[0m\n", liczba_pasazerow);
+
+        // Czekanie na sygnał startu
+        while (!startuj && plyn) {
+          //  sleep(1);
+        }
+        val = sprawdz_wartosc_semafora(SZLABAN, szlabany);
+        val2 = sprawdz_wartosc_semafora(MIEJSCE_NA_MOSTKU, szlabany);
+         printf("       SEMAFORY:  %d, %d\n            pas: %d\n", val,val2, liczba_pasazerow);
+
+        while(sprawdz_wartosc_semafora(MIEJSCE_NA_MOSTKU, szlabany) != pojemnosc_mostka && semctl(szlabany, MIEJSCE_NA_MOSTKU, GETNCNT) != 0) {
+        if (msgrcv(mostek, &pass, ROZMIAR_PASAZERA, NA_STATEK, 0) == -1) {
+                if (errno == EINTR) { // Ignorowanie przerwań
                     continue;
                 }
             }
@@ -142,46 +185,9 @@ int main(int argc, char *argv[]) {
             podnies_semafor(MIEJSCE_NA_MOSTKU);
             printf("\033[36mKapitan wpuscił na statek pasażera \033[0m%d\n", pass.pas_pid);
             val = sprawdz_wartosc_semafora(SZLABAN, szlabany);
-            val2 = sprawdz_wartosc_semafora(MIEJSCE_NA_MOSTKU, szlabany);
-            printf("%d, %d\n", val,val2);
-        }
-        printf("Szlaban się zamknął \n");
-        if (msgctl(mostek, IPC_STAT, &buf) == -1) {
-        perror("msgctl");
-        }
-        printf("Ilosc pasazerow w kolejce: %ld\n", buf.msg_qnum);
-        while (buf.msg_qnum != 0) {  //upewnij sie ze na mostku nikogo nie ma i go odpraw
-             if (msgrcv(mostek, &pass, ROZMIAR_PASAZERA, NA_STATEK, 0) == -1) {
-                if (errno == EINTR) { 
-                    continue;
-                }
-             }
-            if(liczba_pasazerow<pojemnosc_statku)
-                {
-                    pasazerowie[liczba_pasazerow++] = pass.pas_pid; // Zapisz PID pasażera
-                    podnies_semafor(MIEJSCE_NA_MOSTKU);
-                    printf("\033[36mKapitan wpuscił na statek pasażera \033[0m%d\n", pass.pas_pid);
-                }
-            else {
-                    pass.type = ZE_STATKU;
-                    printf("Kapitan wygonił z mostka pasażera %d\n", pass.pas_pid);
-                    if (msgsnd(mostek, &pass, ROZMIAR_PASAZERA, 0) == -1) {
-                        if (errno == EINTR) {
-                            continue;
-                        }
-                }
-            }
-            msgctl(mostek, IPC_STAT, &buf);
-         }
-        
-        printf("\033[36mMostek jest pusty\033[0m\n");
-        printf("%d, %d\n", val,val2);
-        printf("\033[36mNa statek weszło \033[0m%d\033[36m pasażerów\033[0m\n", liczba_pasazerow);
-
-        // Czekanie na sygnał startu
-        while (!startuj && plyn) {
-          //  sleep(1);
-        }
+        val2 = sprawdz_wartosc_semafora(MIEJSCE_NA_MOSTKU, szlabany);
+         printf("       SEMAFORY:  %d, %d\n            pas: %d\n", val,val2, liczba_pasazerow);
+    }
 
         // Rejs rozpoczyna się, o ile nie przerwano rejsów i ktokolwiek jest na statku
         if (plyn) {
@@ -198,6 +204,9 @@ int main(int argc, char *argv[]) {
             printf("\033[36mRejs się jednak nie odbędzie\033[0m\n");
         }
 
+        val = sprawdz_wartosc_semafora(SZLABAN, szlabany);
+        val2 = sprawdz_wartosc_semafora(MIEJSCE_NA_MOSTKU, szlabany);
+         printf("       SEMAFORY:  %d, %d            pas: %d\n", val,val2, liczba_pasazerow);
         // Wypuszczenie pasażerów ze statku
         for (int i = 0; i < liczba_pasazerow; i++) {
             pass.type = ZE_STATKU;
@@ -209,16 +218,18 @@ int main(int argc, char *argv[]) {
             }
             printf("\033[33mPasażer \033[0m%d\033[33m zszedł na ląd\033[0m\n", pass.pas_pid);
             opusc_semafor(MIEJSCE_NA_MOSTKU);
+            printf("        semafor mostek: %d             pas:%d\n", sprawdz_wartosc_semafora(MIEJSCE_NA_MOSTKU, szlabany), i);;
         }
 
-        ;
         while (buf.msg_qnum != 0) {  //upewnij sie ze na mostku nikogo nie ma i go odpraw
             if (msgctl(mostek, IPC_STAT, &buf) == -1) {
             perror("msgctl");
             }
+            printf("            Ludzi w kolejce  %ld\n", buf.msg_qnum);
         }
 
         liczba_pasazerow = 0;
+        printf("        semafor mostek: %d\n", sprawdz_wartosc_semafora(MIEJSCE_NA_MOSTKU, szlabany));;
         printf("\033[36mMostek jest pusty, inni pasażerowie mogą znowu wejść\033[0m\n");
         startuj = 0;
     }

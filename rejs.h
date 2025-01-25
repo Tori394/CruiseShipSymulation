@@ -16,17 +16,22 @@
 #include <fcntl.h>
 #include <pthread.h>
 
-#define NA_STATEK 3 // Kierunek wiadomości w kolejce, wchodzenie na statek
-#define ZE_STATKU 1 // Kierunek wiadomości w kolejce, wychodzenie ze statku
-#define ROZMIAR_PASAZERA (sizeof(pid_t)) // Rozmiar struktury pasażera
 #define MIEJSCE_NA_MOSTKU 0 // Numer semafora dla miejsca na mostku
 #define SZLABAN 1 // Numer semafora dla szlabanu
+#define NA_STATEK 3 // Kierunek wiadomości w kolejce, wchodzenie na statek
+#define ZE_STATKU 1 // Kierunek wiadomości w kolejce, wychodzenie ze statku
 
 // Struktura pasażera
 struct pasazer {
     long type;  // Typ wiadomości
     pid_t pas_pid;  // PID pasażera
 };
+
+
+
+#define ROZMIAR_PASAZERA (sizeof(struct pasazer)) // Rozmiar struktury pasażera
+
+
 
 //============ FUNKCJE DLA KAPITANA =====================
 int utworz_semafor(key_t klucz, int nr);

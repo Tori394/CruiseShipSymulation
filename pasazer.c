@@ -3,12 +3,13 @@
 int mostek;  // Kolejka komunikatów do komunikacji z pasażerami
 int szlabany; // Semafor kontrolujący dostęp do zasobów
 int ilosc_pasazerow = 0; 
-int limit=20000;
+int limit=50;
 pid_t pid;
 pid_t pid_pop;
 
 // Obsługa sygnału SIGINT
 void koniec_pracy(int sig) {
+    while (waitpid(-1, NULL, 0) > 0);
     exit(EXIT_SUCCESS);
 }
 
@@ -49,6 +50,12 @@ int main() {
     srand(time(NULL)); 
 
     szlabany = utworz_semafor(100, 2); // Tworzenie semafora
+    /*while(msgget(123, 0666)==-1) {
+        if (sprawdz_wartosc_semafora(1, szlabany) == -1 && (errno == EINVAL || errno == EIDRM)) {
+            koniec_pracy(SIGINT);
+        }
+    }*/
+   
     mostek = polacz_kolejke(szlabany); // Łączenie się do kolejki komunikatów
 
     while (1) {
@@ -60,15 +67,15 @@ int main() {
 
         // Dodawanie nowych pasażerów, jeśli ich liczba nie przekroczyła limitu
         if (ilosc_pasazerow < limit) {
-            czas_miedzy_pasazerami = rand() % 5 + 5; // Losowy czas oczekiwania
-            sleep(czas_miedzy_pasazerami);
+        //   czas_miedzy_pasazerami = rand() % 5 + 5; // Losowy czas oczekiwania
+         //   sleep(1);
             pid=fork();
             switch (pid)
             {
             case 0:
                 pass.type = NA_STATEK; // Typ komunikatu: pasażer chce wejść na statek
                 pass.pas_pid = getpid(); // PID procesu dziecka
-                printf("\033[33mDo kolejki w rejs ustawił się pasażer \033[0m%d\033[33m!\033[0m\n", pass.pas_pid);
+               // printf("\033[33mDo kolejki w rejs ustawił się pasażer \033[0m%d\033[33m!\033[0m\n", pass.pas_pid);
 
                 // Próba wejścia na statek (opuszczenie semaforów)
                 opusc_semafor(SZLABAN); // Sprawdzenie, czy można wejść na statek
