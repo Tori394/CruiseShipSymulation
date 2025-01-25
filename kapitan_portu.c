@@ -22,7 +22,7 @@ void* wyslij_sygnal_start(void* arg) {
         for(int i = 0; i < pom_czas; i++) {
       //      sleep(1);
             if ((sprawdz_wartosc_semafora(SZLABAN, szlabany) == 0) && plyn) {
-        //            printf("\033[32mKapitan Portu zezwala na wcześniejszy start\033[0m\n");
+             //       printf("\033[32mKapitan Portu zezwala na wcześniejszy start\033[0m\n");
                     break;
                 }
             }
@@ -89,7 +89,7 @@ int main(int argc, char *argv[]) {
 
 
     // Sprawdzenie poprawności danych wejściowych
-   /* if (czas <= 10 || czas > 3600) {
+    if (czas <= 0) {
         fprintf(stderr, "Podane wartosci są niepoprawne\n");
         kill(pid_kapitana, SIGINT);
         exit(EXIT_FAILURE);
@@ -99,7 +99,7 @@ int main(int argc, char *argv[]) {
         fprintf(stderr, "Czas pomiedzy rejsami powinien byc większy od czasu trwania rejsu\n");
         kill(pid_kapitana, SIGINT);
         exit(EXIT_FAILURE);
-    }*/
+    }
 
     if (szansa_na_burze < 0 || szansa_na_burze > 100) {
         fprintf(stderr, "Szansa na burzę musi być liczbą całkowitą w przedziale 0-100.\n");

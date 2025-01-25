@@ -3,7 +3,7 @@
 int mostek;  // Kolejka komunikatów do komunikacji z pasażerami
 int szlabany; // Semafor kontrolujący dostęp do zasobów
 int ilosc_pasazerow = 0; 
-int limit=1000;
+int limit=20000;
 pid_t pid;
 pid_t pid_pop;
 
@@ -15,16 +15,14 @@ void koniec_pracy(int sig) {
 
 // Funkcja opuszczania semafora (zmniejsza wartość semafora o 1)
 void opusc_semafor(int nr) {
-   // printf("SZLABAN PRZED   %d\n", sprawdz_wartosc_semafora(SZLABAN, szlabany));
     struct sembuf op;
-    op.sem_num = nr;  // Wskaż semafor, z którym operujemy (tylko jeden w tym przypadku)
-    op.sem_op = -1;  // Operacja czekania (zmniejszamy semafor)
-    op.sem_flg = 0;  // Flagi (0 oznacza blokowanie procesu)
+    op.sem_num = nr;  
+    op.sem_op = -1;  
+    op.sem_flg = 0;  
     if (semop(szlabany, &op, 1) == -1) {
         // Pasażer odchodzi
         exit(0);
     }
-   // printf("SZLABAN PO   %d\n", sprawdz_wartosc_semafora(SZLABAN, szlabany));
 }
 
 // Funkcja podnoszenia semafora (zwiększa wartość semafora o 1)
@@ -44,8 +42,10 @@ void usun_podproces_dynamicznie(int sig) {
 
 int main() {
     struct pasazer pass; // Struktura przechowująca informacje o pasażerze
-    int i = 0;
     int czas_miedzy_pasazerami;
+    int clear=limit/100+1;
+    pid_t tab[clear];
+    int licz = 0;
 
 
     // Rejestracja obsługi sygnałów
@@ -55,11 +55,6 @@ int main() {
     srand(time(NULL)); 
 
     szlabany = utworz_semafor(100, 2); // Tworzenie semafora
-    /*while(msgget(123, 0666)==-1) {
-        if (sprawdz_wartosc_semafora(1, szlabany) == -1 && (errno == EINVAL || errno == EIDRM)) {
-            koniec_pracy(SIGINT);
-        }
-    }*/
    
    if ((mostek = msgget(123, IPC_CREAT | 0666)) == -1) {
         perror("Blad tworzenia kolejki\n");
@@ -74,7 +69,7 @@ int main() {
         }
 
         // Dodawanie nowych pasażerów, jeśli ich liczba nie przekroczyła limitu
-        if (ilosc_pasazerow < limit) {
+        if (ilosc_pasazerow < limit/2) {
         //   czas_miedzy_pasazerami = rand() % 5 + 5; // Losowy czas oczekiwania
          //   sleep(1);
             pid=fork();
@@ -83,12 +78,11 @@ int main() {
             case 0:
                 pass.type = NA_STATEK; // Typ komunikatu: pasażer chce wejść na statek
                 pass.pas_pid = getpid(); // PID procesu dziecka
-        //        printf("\033[33mDo kolejki w rejs ustawił się pasażer \033[0m%d\033[33m!\033[0m\n", pass.pas_pid);
+              //  printf("\033[33mDo kolejki w rejs ustawił się pasażer \033[0m%d\033[33m!\033[0m\n", pass.pas_pid);
 
                 // Próba wejścia na statek (opuszczenie semaforów)
                 opusc_semafor(SZLABAN); // Sprawdzenie, czy można wejść na statek
                 podnies_semafor(MIEJSCE_NA_MOSTKU);
-                printf("zwiekszony  %d\n", sprawdz_wartosc_semafora(MIEJSCE_NA_MOSTKU, szlabany));
                 if (msgsnd(mostek, &pass, ROZMIAR_PASAZERA, 0) == -1) {
                     //perror("Nie udalo sie wejsc na statek\n");
                     exit(0);
@@ -99,26 +93,30 @@ int main() {
 
                 // Oczekiwanie na zejście ze statku
                 if (msgrcv(mostek, &pass, ROZMIAR_PASAZERA, ZE_STATKU, 0) == -1) {
-                    perror("Blad przy czekaniu na zejscie ze statku\n");
-                    exit(EXIT_FAILURE);
+                   // perror("Blad przy czekaniu na zejscie ze statku\n");
+                    exit(0);
                 }
 
                 // Zwolnienie miejsca na mostku i zakończenie procesu pasażera
-               // podnies_semafor(MIEJSCE_NA_MOSTKU);
                 printf("\033[90mPasażer %d odchodzi\033[0m\n", pass.pas_pid);
 
                 exit(0); // Zakończenie procesu dziecka
                 break;
             case -1:
                 limit=ilosc_pasazerow-ilosc_pasazerow/10;
-                kill(pid_pop, SIGTERM);
+                for(int i=0; i<clear; i++)
+                {
+                    kill(tab[i], SIGTERM);
+                }
+                licz=0;
                 printf("\033[31mMolo jest przepełnione! Nie pojawi się więcej pasażerów dopóki się nie opróżni...\033[0m\n");
                 while (waitpid(-1, NULL, 0) > 0);
                 ilosc_pasazerow=0;
                 break;
             default:
                 ilosc_pasazerow++;
-                pid_pop=pid;
+                tab[licz]=pid;
+                if(++licz==clear) licz=0;
                 break;
             }
         }

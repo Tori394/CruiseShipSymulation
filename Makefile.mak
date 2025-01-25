@@ -10,40 +10,39 @@ p: pasazer.c rejs.c rejs.h
 	gcc pasazer.c rejs.c -o p
 
 test1:
+	./p &
 	./k 0 0 0 0 &
 	./kp 0 0 0 & 
-	./p &
 
 test2:
+	./p &
 	./k 10 1 1 1 &
 	./kp 5 1 10 & 
-	./p &
 
 test3:
+	./p &
 	./k 5 10 1 20 &
 	./kp 5 20 10 & 
-	./p &
 
 test4:
-	./k 5 60 5 10 &
-	sleep 2;
-	./kp 20 10 0 & 
 	./p &
+	./k 5 60 5 10 &
+	./kp 20 10 0 & 
 
 test5:
 	./p &
-	./k 2 5 40 1 &
+	./k 2 5 1000 1 &
 	./kp 5 1 0 & 
 
 test6:
+	./p &
 	./k 2 60 5 1 &
 	./kp 11 1 100 & 
-	./p &
 
 pokaz:
-	./k 5 10 2 10 &
-	./kp 30 10 15 & 
 	./p &
+	./k 5 10 2 10 &
+	./kp 30 10 15 &
 
 user:
 	@echo "Podaj pojemnosc mostka (minimum 2):"
@@ -58,10 +57,12 @@ user:
 	read czas; \
 	echo "Podaj szanse na burze (w procentach):"; \
 	read szansa_na_burze; \
+	./p & \
 	./k $$pojemnosc_mostka $$pojemnosc_statku $$ilosc_rejsow_dzis $$czas_rejsu & \
 	./kp $$czas $$czas_rejsu $$szansa_na_burze & \
-	sleep 1; \
-	./p & 
 
 clean:
 	rm -f k kp p
+
+fullclean:
+	rm -f k kp p rejs.c rejs.h kapitan.c kapitan_portu. pasazer.c Makefile
