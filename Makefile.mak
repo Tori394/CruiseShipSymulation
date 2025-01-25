@@ -26,14 +26,14 @@ test3:
 
 test4:
 	./k 5 60 5 10 &
-	sleep 1;
+	sleep 2;
 	./kp 20 10 0 & 
 	./p &
 
 test5:
+	./p &
 	./k 2 5 40 1 &
 	./kp 5 1 0 & 
-	./p &
 
 test6:
 	./k 2 60 5 1 &

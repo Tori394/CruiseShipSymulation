@@ -19,7 +19,7 @@
 #define MIEJSCE_NA_MOSTKU 0 // Numer semafora dla miejsca na mostku
 #define SZLABAN 1 // Numer semafora dla szlabanu
 #define NA_STATEK 3 // Kierunek wiadomości w kolejce, wchodzenie na statek
-#define ZE_STATKU 1 // Kierunek wiadomości w kolejce, wychodzenie ze statku
+#define ZE_STATKU 4 // Kierunek wiadomości w kolejce, wychodzenie ze statku
 
 // Struktura pasażera
 struct pasazer {
@@ -29,7 +29,7 @@ struct pasazer {
 
 
 
-#define ROZMIAR_PASAZERA (sizeof(struct pasazer)) // Rozmiar struktury pasażera
+#define ROZMIAR_PASAZERA (sizeof(pid_t)) // Rozmiar struktury pasażera
 
 
 

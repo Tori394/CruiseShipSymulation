@@ -21,7 +21,7 @@ void* wyslij_sygnal_start(void* arg) {
     while (plyn) {
         for(int i = 0; i < pom_czas; i++) {
       //      sleep(1);
-            if ((sprawdz_wartosc_semafora(SZLABAN, szlabany) == 0) && (sprawdz_wartosc_semafora(MIEJSCE_NA_MOSTKU, szlabany) != 0) && plyn) {
+            if ((sprawdz_wartosc_semafora(SZLABAN, szlabany) == 0) && plyn) {
         //            printf("\033[32mKapitan Portu zezwala na wcześniejszy start\033[0m\n");
                     break;
                 }
