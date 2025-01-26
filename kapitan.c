@@ -10,12 +10,13 @@ int liczba_pasazerow = 0;
 // Obsługa sygnału SIGINT
 void koniec_pracy(int sig) {
     zakoncz(mostek, szlabany, pid_kapitana);
-    exit(EXIT_FAILURE);
+    exit(1);
 }
 
 // Obsługa sygnału SIGUSR2
 void odbierz_sygnal_stop(int sig) {
     ustaw_wartosc_semafora(0, SZLABAN, szlabany);
+    startuj=1;
     plyn=0;
 }
 
@@ -111,8 +112,6 @@ int main(int argc, char *argv[]) {
 
     struct pasazer pass; // Struktura pasażera
     struct msqid_ds buf; // Bufor do sprawdzania stanu kolejki
-    int val = pojemnosc_statku; // pomocnicze
-    int val2 = 0;
 
     // Tworzenie semafora
     szlabany = utworz_semafor(100, 2);
@@ -185,15 +184,14 @@ int main(int argc, char *argv[]) {
         } else {
             printf("\033[36mRejs się jednak nie odbędzie\033[0m\n");
         }
-       // ustaw_wartosc_semafora(pojemnosc_mostka, MOST, szlabany);
 
         // Wypuszczenie pasażerów ze statku
         for (int i = 0; i < liczba_pasazerow; i++) {
             pass.type = ZE_STATKU;
             pass.pas_pid = pasazerowie[i];
-            if (msgsnd(mostek, &pass, ROZMIAR_PASAZERA, 0) == -1) {
+            while (msgsnd(mostek, &pass, ROZMIAR_PASAZERA, 0) == -1) {
                 if (errno == EINTR) {
-                printf("Pasazerowie nie chcą sie ruszyć ze statku\n");
+                printf("Pasazerowie się zatrzymali, nie chcą sie ruszyć ze statku\n");
                 continue;
             }
             }

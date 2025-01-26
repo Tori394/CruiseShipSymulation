@@ -20,17 +20,14 @@
 #define SZLABAN 1 // Numer semafora dla szlabanu
 #define NA_STATEK 3 // Kierunek wiadomości w kolejce, wchodzenie na statek
 #define ZE_STATKU 4 // Kierunek wiadomości w kolejce, wychodzenie ze statku
+#define ROZMIAR_PASAZERA (sizeof(pid_t)) // Rozmiar struktury pasażera
+
 
 // Struktura pasażera
 struct pasazer {
     long type;  // Typ wiadomości
     pid_t pas_pid;  // PID pasażera
 };
-
-
-
-#define ROZMIAR_PASAZERA (sizeof(pid_t)) // Rozmiar struktury pasażera
-
 
 
 //============ FUNKCJE DLA KAPITANA =====================

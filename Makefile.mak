@@ -4,7 +4,7 @@ k: kapitan.c rejs.c rejs.h
 	gcc kapitan.c rejs.c -o k
 
 kp: kapitan_portu.c rejs.c rejs.h
-	gcc kapitan_portu.c rejs.c -o kp
+	gcc kapitan_portu.c rejs.c -o kp -pthread
 
 p: pasazer.c rejs.c rejs.h
 	gcc pasazer.c rejs.c -o p
@@ -40,15 +40,15 @@ test6:
 	./kp 11 1 100 & 
 
 user:
-	@echo "Podaj pojemnosc mostka (minimum 2):"
+	@echo "Podaj pojemnosc mostka:"
 	@read pojemnosc_mostka; \
-	echo "Podaj pojemnosc statku (minimum 5):"; \
+	echo "Podaj pojemnosc statku:"; \
 	read pojemnosc_statku; \
 	echo "Podaj ilosc rejsow dzisiaj:"; \
 	read ilosc_rejsow_dzis; \
 	echo "Podaj czas rejsu (w sekundach):"; \
 	read czas_rejsu; \
-	echo "Podaj czas miedzy rejsami (w sekundach, musi byc wiekszy niz 10s i mniejszy od czasu rejsu):"; \
+	echo "Podaj czas miedzy rejsami (w sekundach, musi byc wiekszy od czasu rejsu):"; \
 	read czas; \
 	echo "Podaj szanse na burze (w procentach):"; \
 	read szansa_na_burze; \

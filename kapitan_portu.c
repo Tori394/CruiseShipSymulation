@@ -10,7 +10,8 @@ int szansa_na_burze;
 // Funkcja obsługująca sygnał SIGINT
 void koniec_pracy(int sig) {
     plyn = 0;
-    semctl(szlabany, 0, IPC_RMID) == -1;
+    semctl(szlabany, 0, IPC_RMID);
+    kill(pid_kapitana, SIGINT);
     exit(0);
 }
 

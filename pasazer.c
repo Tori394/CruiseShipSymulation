@@ -5,12 +5,12 @@ int szlabany; // Semafor kontrolujący dostęp do zasobów
 int ilosc_pasazerow = 0; 
 int limit=20000;
 pid_t pid;
-pid_t pid_pop;
 
 // Obsługa sygnału SIGINT
 void koniec_pracy(int sig) {
-    while (waitpid(-1, NULL, 0) > 0);
-    exit(EXIT_SUCCESS);
+    msgctl(mostek, IPC_RMID, NULL);
+    semctl(szlabany, 0, IPC_RMID);
+    exit(0);
 }
 
 // Funkcja opuszczania semafora (zmniejsza wartość semafora o 1)
@@ -43,16 +43,6 @@ void usun_podproces_dynamicznie(int sig) {
 int main() {
     struct pasazer pass; // Struktura przechowująca informacje o pasażerze
     int czas_miedzy_pasazerami;
-    int clear=limit/100+1;
-    pid_t tab[clear];
-    int licz = 0;
-
-
-    // Rejestracja obsługi sygnałów
-    signal(SIGINT, koniec_pracy); 
-    signal(SIGCHLD, usun_podproces_dynamicznie); 
-
-    srand(time(NULL)); 
 
     szlabany = utworz_semafor(100, 2); // Tworzenie semafora
    
@@ -61,6 +51,17 @@ int main() {
         exit(EXIT_FAILURE);
     } // Łączenie się do kolejki komunikatów
 
+
+    // Rejestracja obsługi sygnałów
+    signal(SIGINT, koniec_pracy); 
+    signal(SIGCHLD, usun_podproces_dynamicznie); 
+
+    srand(time(NULL)); 
+
+    int clear=limit/100+1;
+    pid_t tab[clear];
+    int licz = 0;
+    
     while (1) {
 
         // Sprawdzenie, czy semafor istnieje i jest dostępny
@@ -104,7 +105,7 @@ int main() {
                 break;
             case -1:
                 limit=ilosc_pasazerow-ilosc_pasazerow/10;
-                for(int i=0; i<clear; i++)
+                for(int i=0; i<clear; i++)  //usuwanie 1% procesów limitu początkowego, by dalej można było wywołać ręcznie inne komendy
                 {
                     kill(tab[i], SIGTERM);
                 }
