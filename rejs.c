@@ -22,6 +22,7 @@ void ustaw_wartosc_semafora(int wartosc, int nr, int sem) {
         }
         exit(EXIT_FAILURE);
     }
+    return;
 }
 
 // Funkcja do sprawdzania wartości semafora
@@ -32,23 +33,11 @@ int sprawdz_wartosc_semafora(int nr, int s) {
 // Funkcja do czyszczenia zasobów przed zakończeniem
 void zakoncz(int kolejka, int semafor, pid_t pid) {
     wyswietl_bledy = 0;
-    if (msgctl(kolejka, IPC_RMID, NULL) == -1) {
-        if (wyswietl_bledy) {
-            perror("Błąd usunięcia kolejki\n");
-        }
-    }
-    if (semctl(semafor, 0, IPC_RMID) == -1) {
-        if (wyswietl_bledy) {
-            perror("Błąd usuwania semafora\n");
-        }
-    }
-    if (unlink("./fifo2") == -1) {
-        if (wyswietl_bledy) {
-            perror("Błąd usuwania FIFO");
-        }
-        exit(EXIT_FAILURE);
-    }
+    msgctl(kolejka, IPC_RMID, NULL);
+    semctl(semafor, 0, IPC_RMID);
+    unlink("./fifo2");
     kill(pid, SIGINT);
+    return;
 }
 
 // Funkcja do otwierania FIFO w określonym trybie
@@ -60,6 +49,7 @@ void otworz_fifo(const char *fifo_path, int *fd, int mode) {
         }
         exit(EXIT_FAILURE);
     }
+    return;
 }
 
 // Funkcja do odbierania PID z FIFO
@@ -92,6 +82,7 @@ void wyslij_pid(pid_t pid, const char *fifo_path) {
         exit(EXIT_FAILURE);
     }
     close(fd);
+    return;
 }
 
 // Funkcja do wysyłania sygnału do procesu
@@ -102,11 +93,12 @@ void wyslij_sygnal(pid_t pid, int sygnal) {
         }
         kill(getpid(), SIGINT);
     }
+    return;
 }
 
 // Funkcja do łączenia z kolejką wiadomości
 int polacz_kolejke(int s) {
-    int m = msgget(123, 0666);
+    int m = msgget(123, 0600);
     if (m == -1) {
         semctl(s, 0, IPC_RMID);
         exit(EXIT_FAILURE);

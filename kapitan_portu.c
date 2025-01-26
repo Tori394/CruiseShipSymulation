@@ -16,13 +16,13 @@ void koniec_pracy(int sig) {
 
 // Funkcja wysyłająca sygnał startu do kapitana
 void* wyslij_sygnal_start(void* arg) {
-  //  sleep(czas2);
+   sleep(czas2);
     int pom_czas = czas - czas2; // Odliczenie czasu rejsu - żeby rejsy odbywały się co 'czas' a nie żeby statek stał 'czas'
     while (plyn) {
         for(int i = 0; i < pom_czas; i++) {
-      //      sleep(1);
+            sleep(1);
             if ((sprawdz_wartosc_semafora(SZLABAN, szlabany) == 0) && plyn) {
-             //       printf("\033[32mKapitan Portu zezwala na wcześniejszy start\033[0m\n");
+                    printf("\033[32mKapitan Portu zezwala na wcześniejszy start\033[0m\n");
                     break;
                 }
             }
@@ -30,7 +30,7 @@ void* wyslij_sygnal_start(void* arg) {
         wyslij_sygnal(pid_kapitana, SIGUSR1); // Wysłanie sygnału do kapitana
         // Sprawdzenie semafora i zakończenie programu, jeśli semafor niestnieje
         if (sprawdz_wartosc_semafora(1, szlabany) == -1) kill(getpid(), SIGINT);
-      //  sleep(czas2); // Czekanie na zakończenie rejsu
+        sleep(czas2); // Czekanie na zakończenie rejsu
     }
     return NULL;
 }
@@ -39,7 +39,7 @@ void* wyslij_sygnal_start(void* arg) {
 void* wyslij_sygnal_stop(void* arg) {
     while (plyn) {
         for(int i=0; i<czas/2; i++) { //2 razy na rejs wypatruj burzy
-      //      sleep(1);
+            sleep(1);
         }
 
         if (rand() % 100 < szansa_na_burze) { // % szansa na burzę na podstawie wartości użytkownika
@@ -72,7 +72,7 @@ int main(int argc, char *argv[]) {
     signal(SIGINT, koniec_pracy);
 
     // Tworzenie FIFO
-    if (mkfifo("./fifo", 0666) == -1 && errno != EEXIST) {
+    if (mkfifo("./fifo", 0600) == -1 && errno != EEXIST) {
         perror("Błąd tworzenia FIFO");
         exit(EXIT_FAILURE);
     }

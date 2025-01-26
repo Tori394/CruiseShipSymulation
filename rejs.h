@@ -16,7 +16,7 @@
 #include <fcntl.h>
 #include <pthread.h>
 
-#define MIEJSCE_NA_MOSTKU 0 // Numer semafora dla miejsca na mostku
+#define MOST 0 // Numer semafora dla miejsca na mostku
 #define SZLABAN 1 // Numer semafora dla szlabanu
 #define NA_STATEK 3 // Kierunek wiadomości w kolejce, wchodzenie na statek
 #define ZE_STATKU 4 // Kierunek wiadomości w kolejce, wychodzenie ze statku

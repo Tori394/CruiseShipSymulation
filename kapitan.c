@@ -21,7 +21,7 @@ void odbierz_sygnal_stop(int sig) {
 
 // Obsługa sygnału SIGUSR1
 void odbierz_sygnal_start(int sig) {
-  //   printf("\033[32mKapitan otrzymał sygnał do startu!\033[0m\n");
+     printf("\033[32mKapitan otrzymał sygnał do startu!\033[0m\n");
      if(liczba_pasazerow>0) {
         ustaw_wartosc_semafora(0, SZLABAN, szlabany);
         startuj = 1;
@@ -78,7 +78,7 @@ int main(int argc, char *argv[]) {
     signal(SIGUSR2, odbierz_sygnal_stop);
     
     // Tworzenie pliku FIFO do komunikacji
-    if (mkfifo("./fifo2", 0666) == -1 && errno != EEXIST) {
+    if (mkfifo("./fifo2", 0600) == -1 && errno != EEXIST) {
         perror("Bląd tworzenia FIFO2");
         exit(EXIT_FAILURE);
     }
@@ -126,7 +126,7 @@ int main(int argc, char *argv[]) {
     while (ilosc_rejsow_dzis && plyn) {
         ustaw_wartosc_semafora(pojemnosc_statku,SZLABAN, szlabany); // semafor 1 - kontrola liczby ludzi wchodzących na statek
         // Pętla obsługi pasażerów
-        while ((msgctl(mostek, IPC_STAT, &buf) == 0 && buf.msg_qnum > 0) || sprawdz_wartosc_semafora(MIEJSCE_NA_MOSTKU, szlabany) > 0 || !startuj) {
+        while ((msgctl(mostek, IPC_STAT, &buf) == 0 && buf.msg_qnum > 0) || sprawdz_wartosc_semafora(MOST, szlabany) > 0 || !startuj) {
     
             if (msgrcv(mostek, &pass, ROZMIAR_PASAZERA, NA_STATEK, 0) == -1) {
                 if (errno == EINTR) { // Ignorowanie przerwań
@@ -143,7 +143,6 @@ int main(int argc, char *argv[]) {
             }
 
         msgctl(mostek, IPC_STAT, &buf);
-        printf("Na mostku jeszcze: %ld\n", buf.msg_qnum);
          while (buf.msg_qnum != 0) {  //upewnij sie ze na mostku nikogo nie ma i go odpraw
             if (msgctl(mostek, IPC_STAT, &buf) == -1) {
             perror("msgctl");
@@ -167,7 +166,7 @@ int main(int argc, char *argv[]) {
 
         // Czekanie na sygnał startu
         while (!startuj && plyn) {
-          //  sleep(1);
+            sleep(1);
         }
     
        
@@ -179,14 +178,14 @@ int main(int argc, char *argv[]) {
                     continue;
                 } else {
                     printf("\033[36mRejs z \033[0m%d\033[36m pasażerami się rozpoczął\033[0m\n", liczba_pasazerow);
-                   // sleep(czas_rejsu); // Symulacja rejsu
+                    sleep(czas_rejsu); // Symulacja rejsu
                     printf("\033[36mRejs zakończony\033[0m\n\033[36mNa dzisiaj zaplanowano jeszcze \033[31m%d\033[36m rejsów\033[0m\n", --ilosc_rejsow_dzis);
                 }
             }
         } else {
             printf("\033[36mRejs się jednak nie odbędzie\033[0m\n");
         }
-       // ustaw_wartosc_semafora(pojemnosc_mostka, MIEJSCE_NA_MOSTKU, szlabany);
+       // ustaw_wartosc_semafora(pojemnosc_mostka, MOST, szlabany);
 
         // Wypuszczenie pasażerów ze statku
         for (int i = 0; i < liczba_pasazerow; i++) {
@@ -194,30 +193,13 @@ int main(int argc, char *argv[]) {
             pass.pas_pid = pasazerowie[i];
             if (msgsnd(mostek, &pass, ROZMIAR_PASAZERA, 0) == -1) {
                 if (errno == EINTR) {
-                printf("ups\n");
+                printf("Pasazerowie nie chcą sie ruszyć ze statku\n");
                 continue;
             }
+            }
             printf("\033[33mPasażer \033[0m%d\033[33m zszedł na ląd\033[0m\n", pass.pas_pid);
-
-        }
         }
         
-        while (msgctl(mostek, IPC_STAT, &buf) == 0 && buf.msg_qnum > 0) {
-            if (msgrcv(mostek, &pass, ROZMIAR_PASAZERA, NA_STATEK, 0) == -1) {
-                if (errno == EINTR) { // Ignorowanie przerwań
-                    continue;
-                }
-            }
-            printf("wyproszono pasażera\n");
-            pass.type = ZE_STATKU;
-            if (msgsnd(mostek, &pass, ROZMIAR_PASAZERA, 0) == -1) {
-                if (errno == EINTR) {
-                    continue;
-                }
-            }
-            printf("Pasazer oszedł\n");
-        }
-
         liczba_pasazerow = 0;
         printf("\033[36mMostek jest pusty, inni pasażerowie mogą znowu wejść\033[0m\n");
         startuj = 0;

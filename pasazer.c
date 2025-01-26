@@ -56,7 +56,7 @@ int main() {
 
     szlabany = utworz_semafor(100, 2); // Tworzenie semafora
    
-   if ((mostek = msgget(123, IPC_CREAT | 0666)) == -1) {
+   if ((mostek = msgget(123, IPC_CREAT | 0600)) == -1) {
         perror("Blad tworzenia kolejki\n");
         exit(EXIT_FAILURE);
     } // Łączenie się do kolejki komunikatów
@@ -70,26 +70,26 @@ int main() {
 
         // Dodawanie nowych pasażerów, jeśli ich liczba nie przekroczyła limitu
         if (ilosc_pasazerow < limit/2) {
-        //   czas_miedzy_pasazerami = rand() % 5 + 5; // Losowy czas oczekiwania
-         //   sleep(1);
+           czas_miedzy_pasazerami = rand() % 5; // Losowy czas oczekiwania
+            sleep(czas_miedzy_pasazerami);
             pid=fork();
             switch (pid)
             {
             case 0:
                 pass.type = NA_STATEK; // Typ komunikatu: pasażer chce wejść na statek
                 pass.pas_pid = getpid(); // PID procesu dziecka
-              //  printf("\033[33mDo kolejki w rejs ustawił się pasażer \033[0m%d\033[33m!\033[0m\n", pass.pas_pid);
+                printf("\033[33mDo kolejki w rejs ustawił się pasażer \033[0m%d\033[33m!\033[0m\n", pass.pas_pid);
 
                 // Próba wejścia na statek (opuszczenie semaforów)
                 opusc_semafor(SZLABAN); // Sprawdzenie, czy można wejść na statek
-                podnies_semafor(MIEJSCE_NA_MOSTKU);
+                podnies_semafor(MOST);
                 if (msgsnd(mostek, &pass, ROZMIAR_PASAZERA, 0) == -1) {
                     //perror("Nie udalo sie wejsc na statek\n");
                     exit(0);
                 }
 
                 printf("\033[33mPasażer \033[0m%d\033[33m wszedł na mostek\033[0m\n", pass.pas_pid);
-                opusc_semafor(MIEJSCE_NA_MOSTKU);
+                opusc_semafor(MOST);
 
                 // Oczekiwanie na zejście ze statku
                 if (msgrcv(mostek, &pass, ROZMIAR_PASAZERA, ZE_STATKU, 0) == -1) {

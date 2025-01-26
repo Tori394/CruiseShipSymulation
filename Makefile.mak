@@ -31,18 +31,13 @@ test4:
 
 test5:
 	./p &
-	./k 2 5 1000 1 &
-	./kp 5 1 0 & 
+	./k 2 5 5 1 &
+	./kp 60 1 0 & 
 
 test6:
 	./p &
 	./k 2 60 5 1 &
 	./kp 11 1 100 & 
-
-pokaz:
-	./p &
-	./k 5 10 2 10 &
-	./kp 30 10 15 &
 
 user:
 	@echo "Podaj pojemnosc mostka (minimum 2):"
