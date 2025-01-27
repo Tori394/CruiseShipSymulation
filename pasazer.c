@@ -3,7 +3,7 @@
 int mostek;  // Kolejka komunikatów do komunikacji z pasażerami
 int szlabany; // Semafor kontrolujący dostęp do zasobów
 int ilosc_pasazerow = 0; 
-int limit=20000;
+int limit=1000;
 pid_t pid;
 
 // Obsługa sygnału SIGINT
@@ -70,7 +70,7 @@ int main() {
         }
 
         // Dodawanie nowych pasażerów, jeśli ich liczba nie przekroczyła limitu
-        if (ilosc_pasazerow < limit/2) {
+        if (ilosc_pasazerow < limit) {
            czas_miedzy_pasazerami = rand() % 5; // Losowy czas oczekiwania
             sleep(czas_miedzy_pasazerami);
             pid=fork();
