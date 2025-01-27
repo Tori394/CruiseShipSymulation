@@ -11,30 +11,20 @@ p: pasazer.c rejs.c rejs.h
 
 test1:
 	./p &
-	./k 0 0 0 0 &
-	./kp 0 0 0 & 
-
-test2:
-	./p &
-	./k 10 1 1 1 &
-	./kp 5 1 10 & 
-
-test3:
-	./p &
 	./k 5 10 1 20 &
 	./kp 5 20 10 & 
 
-test4:
+test2:
 	./p &
 	./k 5 60 5 10 &
 	./kp 20 10 0 & 
 
-test5:
+test3:
 	./p &
 	./k 2 5 5 1 &
 	./kp 60 1 0 & 
 
-test6:
+test4:
 	./p &
 	./k 2 60 5 1 &
 	./kp 11 1 100 & 
@@ -60,4 +50,4 @@ clean:
 	rm -f k kp p
 
 fullclean:
-	rm -f k kp p rejs.c rejs.h kapitan.c kapitan_portu. pasazer.c Makefile
+	rm -f k kp p rejs.c rejs.h kapitan.c kapitan_portu.c pasazer.c Makefile
